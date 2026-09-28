@@ -63,6 +63,8 @@ public class SellerController(StoreDbContext db) : Controller
         if (product is null) return NotFound();
         await FillCategoriesAsync();
         ViewBag.ProductId = id;
+        ViewBag.ModerationStatus = product.ModerationStatus;
+        ViewBag.ModerationReason = product.ModerationReason;
         return View("ProductForm", new ProductForm
         {
             Name = product.Name, Description = product.Description, Price = product.Price,
@@ -82,6 +84,8 @@ public class SellerController(StoreDbContext db) : Controller
         {
             await FillCategoriesAsync();
             ViewBag.ProductId = id;
+            ViewBag.ModerationStatus = product.ModerationStatus;
+            ViewBag.ModerationReason = product.ModerationReason;
             return View("ProductForm", form);
         }
         product.Name = form.Name.Trim();
@@ -91,8 +95,12 @@ public class SellerController(StoreDbContext db) : Controller
         product.CategoryId = form.CategoryId;
         product.Visual = CleanVisual(form.Visual);
         product.IsPublished = form.IsPublished;
+        if (product.IsHiddenByAdmin)
+            product.ModerationStatus = ProductModerationStatus.PendingReview;
         await db.SaveChangesAsync();
-        TempData["Success"] = "Товар обновлён.";
+        TempData["Success"] = product.IsHiddenByAdmin
+            ? "Изменения сохранены. Товар отправлен администратору на проверку."
+            : "Товар обновлён.";
         return RedirectToAction("Products");
     }
 

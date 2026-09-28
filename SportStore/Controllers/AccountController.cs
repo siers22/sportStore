@@ -23,9 +23,17 @@ public class AccountController(UserManager<AppUser> users, SignInManager<AppUser
         ViewBag.ReturnUrl = returnUrl;
         if (!ModelState.IsValid) return View(form);
         var user = await users.FindByEmailAsync(form.Email.Trim());
-        if (user is null || user.IsBlocked)
+        if (user is null)
         {
             ModelState.AddModelError("", "Не удалось войти. Проверьте данные или статус аккаунта.");
+            return View(form);
+        }
+        if (user.IsBlocked)
+        {
+            var message = await users.CheckPasswordAsync(user, form.Password)
+                ? $"Аккаунт заблокирован. Причина: {user.BlockReason ?? "обратитесь к администратору"}."
+                : "Не удалось войти. Проверьте данные или статус аккаунта.";
+            ModelState.AddModelError("", message);
             return View(form);
         }
         var result = await signIn.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: true);

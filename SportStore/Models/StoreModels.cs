@@ -15,6 +15,8 @@ public class AppUser : IdentityUser
     [Required, StringLength(80)]
     public string DisplayName { get; set; } = "";
     public bool IsBlocked { get; set; }
+    [StringLength(1000)]
+    public string? BlockReason { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public SellerProfile? SellerProfile { get; set; }
     public VirtualCard? VirtualCard { get; set; }
@@ -53,6 +55,9 @@ public class Product
     public int Stock { get; set; }
     public bool IsPublished { get; set; } = true;
     public bool IsHiddenByAdmin { get; set; }
+    public ProductModerationStatus ModerationStatus { get; set; } = ProductModerationStatus.Approved;
+    [StringLength(1000)]
+    public string? ModerationReason { get; set; }
     [StringLength(30)]
     public string Visual { get; set; } = "default";
     public int CategoryId { get; set; }
@@ -61,6 +66,8 @@ public class Product
     public AppUser Seller { get; set; } = null!;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+public enum ProductModerationStatus { Approved, ChangesRequested, PendingReview }
 
 public class CartItem
 {

@@ -10,6 +10,7 @@ public static class DbSeeder
     {
         var db = services.GetRequiredService<StoreDbContext>();
         await db.Database.EnsureCreatedAsync();
+        await UpdateSchemaAsync(db);
 
         var roles = services.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { Roles.Buyer, Roles.Seller, Roles.Admin })
@@ -70,6 +71,39 @@ public static class DbSeeder
                     Name = name, Description = description, Price = price, Stock = stock,
                     CategoryId = categories[category], Visual = visual, SellerId = sellerId
                 };
+        }
+    }
+
+    // EnsureCreated does not add columns to databases created by earlier versions.
+    private static async Task UpdateSchemaAsync(StoreDbContext db)
+    {
+        var connection = db.Database.GetDbConnection();
+        await connection.OpenAsync();
+        try
+        {
+            await AddColumnIfMissingAsync("AspNetUsers", "BlockReason", "TEXT NULL");
+            await AddColumnIfMissingAsync("Products", "ModerationStatus", "TEXT NOT NULL DEFAULT 'Approved'");
+            await AddColumnIfMissingAsync("Products", "ModerationReason", "TEXT NULL");
+            await db.Database.ExecuteSqlRawAsync("UPDATE Products SET ModerationStatus = 'ChangesRequested' WHERE IsHiddenByAdmin = 1 AND ModerationStatus = 'Approved'");
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+
+        async Task AddColumnIfMissingAsync(string table, string column, string definition)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"PRAGMA table_info(\"{table}\")";
+            await using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                    if (reader.GetString(1) == column) return;
+            }
+
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = $"ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition}";
+            await alter.ExecuteNonQueryAsync();
         }
     }
 

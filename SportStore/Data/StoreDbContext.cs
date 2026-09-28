@@ -38,6 +38,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : Identity
         builder.Entity<PaymentTransaction>().Property(t => t.BalanceAfter).HasPrecision(12, 2);
         builder.Entity<SellerOrder>().Property(o => o.Status).HasConversion<string>();
         builder.Entity<Complaint>().Property(c => c.Status).HasConversion<string>();
+        builder.Entity<Product>().Property(p => p.ModerationStatus).HasConversion<string>();
 
         builder.Entity<Product>().HasOne(p => p.Seller).WithMany().HasForeignKey(p => p.SellerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CartItem>().HasOne(c => c.Buyer).WithMany().HasForeignKey(c => c.BuyerId).OnDelete(DeleteBehavior.Restrict);

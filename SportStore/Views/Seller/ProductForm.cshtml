@@ -8,6 +8,12 @@
     <form action="@Url.Action(isEdit ? "EditProduct" : "CreateProduct", "Seller", new { id = ViewBag.ProductId })" method="post" class="form-panel stack-form">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="validation"></div>
+        @if (ViewBag.ModerationStatus is ProductModerationStatus status && status != ProductModerationStatus.Approved)
+        {
+            <p><strong>@(status == ProductModerationStatus.PendingReview ? "Товар на проверке у администратора." : "Администратор запросил исправления.")</strong></p>
+            @if (ViewBag.ModerationReason is string reason && !string.IsNullOrWhiteSpace(reason)) { <p>Причина: @reason</p> }
+            <p>После сохранения изменений товар отправится на проверку. В каталоге он появится после одобрения.</p>
+        }
         <label asp-for="Name">Название</label><input asp-for="Name" /><span asp-validation-for="Name" class="validation"></span>
         <label asp-for="Description">Описание</label><textarea asp-for="Description" rows="5"></textarea><span asp-validation-for="Description" class="validation"></span>
         <div class="form-two"><div><label asp-for="Price">Цена, ₽</label><input asp-for="Price" type="number" min="0.01" step="0.01" /><span asp-validation-for="Price" class="validation"></span></div><div><label asp-for="Stock">Остаток</label><input asp-for="Stock" type="number" min="0" /><span asp-validation-for="Stock" class="validation"></span></div></div>

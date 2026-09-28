@@ -51,6 +51,8 @@ public class CheckoutForm
     [Required(ErrorMessage = "Укажите адрес доставки."), StringLength(200)]
     public string DeliveryAddress { get; set; } = "";
     [Required(ErrorMessage = "Укажите телефон."), StringLength(30)]
+    [RegularExpression(@"^(?:\+7|8)[\s-]*(?:\(\d{3}\)|\d{3})[\s-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}$",
+        ErrorMessage = "Введите российский номер: +7 900 000-00-00 или 8 900 000-00-00.")]
     public string ContactPhone { get; set; } = "";
 }
 

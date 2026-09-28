@@ -1,5 +1,46 @@
 @model List<Product>
 @{ ViewData["Title"] = "Модерация товаров"; }
-<section class="container page-space"><div class="breadcrumb"><a asp-action="Index">Панель администратора</a><span>/</span>Товары</div><div class="page-heading"><div class="eyebrow">МОДЕРАЦИЯ</div><h1>Товары<span class="heading-dot">.</span></h1></div>
-    <div class="table-wrap"><table><thead><tr><th>Товар</th><th>Продавец</th><th>Категория</th><th>Цена</th><th>Статус</th><th></th></tr></thead><tbody>@foreach (var product in Model) { <tr><td><strong>@product.Name</strong></td><td>@(product.Seller.SellerProfile?.StoreName ?? product.Seller.DisplayName)</td><td>@product.Category.Name</td><td>@product.Price.ToString("N0") ₽</td><td><span class="status">@(product.IsHiddenByAdmin ? "Скрыт администратором" : product.IsPublished ? "Опубликован" : "Снят продавцом")</span></td><td><form asp-action="ToggleProduct" asp-route-id="@product.Id" method="post"><button class="text-link link-button" type="submit">@(product.IsHiddenByAdmin ? "Снять запрет" : "Скрыть")</button></form></td></tr> }</tbody></table></div>
+<section class="container page-space">
+    <div class="breadcrumb"><a asp-action="Index">Панель администратора</a><span>/</span>Товары</div>
+    <div class="page-heading"><div class="eyebrow">МОДЕРАЦИЯ</div><h1>Товары<span class="heading-dot">.</span></h1></div>
+    @if (TempData["Error"] is string error) { <div class="validation">@error</div> }
+    <div class="table-wrap"><table>
+        <thead><tr><th>Товар</th><th>Продавец</th><th>Категория</th><th>Цена</th><th>Статус и причина</th><th>Решение</th></tr></thead>
+        <tbody>
+        @foreach (var product in Model)
+        {
+            <tr>
+                <td><strong>@product.Name</strong></td>
+                <td>@(product.Seller.SellerProfile?.StoreName ?? product.Seller.DisplayName)</td>
+                <td>@product.Category.Name</td>
+                <td>@product.Price.ToString("N0") ₽</td>
+                <td>
+                    <span class="status">@(product.ModerationStatus switch {
+                        ProductModerationStatus.PendingReview => "На проверке",
+                        ProductModerationStatus.ChangesRequested => "Ожидает исправлений",
+                        _ => product.IsPublished ? "Опубликован" : "Снят продавцом"
+                    })</span>
+                    @if (product.IsHiddenByAdmin && !string.IsNullOrWhiteSpace(product.ModerationReason))
+                    { <p>Причина: @product.ModerationReason</p> }
+                </td>
+                <td>
+                    @if (product.ModerationStatus == ProductModerationStatus.PendingReview)
+                    {
+                        <form asp-action="ApproveProduct" asp-route-id="@product.Id" method="post">
+                            <button class="text-link link-button" type="submit">@(product.IsPublished ? "Одобрить и вернуть в каталог" : "Одобрить исправления")</button>
+                        </form>
+                    }
+                    @if (product.ModerationStatus != ProductModerationStatus.ChangesRequested)
+                    {
+                        <form asp-action="HideProduct" asp-route-id="@product.Id" method="post">
+                            <label for="reason-@product.Id">@(product.ModerationStatus == ProductModerationStatus.PendingReview ? "Что ещё исправить" : "Причина скрытия")</label>
+                            <textarea id="reason-@product.Id" name="reason" rows="2" maxlength="1000" required></textarea>
+                            <button class="text-link link-button" type="submit">@(product.ModerationStatus == ProductModerationStatus.PendingReview ? "Вернуть на исправление" : "Скрыть товар")</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
 </section>
