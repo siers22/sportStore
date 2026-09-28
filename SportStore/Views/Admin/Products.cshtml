@@ -1,0 +1,5 @@
+@model List<Product>
+@{ ViewData["Title"] = "Модерация товаров"; }
+<section class="container page-space"><div class="breadcrumb"><a asp-action="Index">Панель администратора</a><span>/</span>Товары</div><div class="page-heading"><div class="eyebrow">МОДЕРАЦИЯ</div><h1>Товары<span class="heading-dot">.</span></h1></div>
+    <div class="table-wrap"><table><thead><tr><th>Товар</th><th>Продавец</th><th>Категория</th><th>Цена</th><th>Статус</th><th></th></tr></thead><tbody>@foreach (var product in Model) { <tr><td><strong>@product.Name</strong></td><td>@(product.Seller.SellerProfile?.StoreName ?? product.Seller.DisplayName)</td><td>@product.Category.Name</td><td>@product.Price.ToString("N0") ₽</td><td><span class="status">@(product.IsHiddenByAdmin ? "Скрыт администратором" : product.IsPublished ? "Опубликован" : "Снят продавцом")</span></td><td><form asp-action="ToggleProduct" asp-route-id="@product.Id" method="post"><button class="text-link link-button" type="submit">@(product.IsHiddenByAdmin ? "Снять запрет" : "Скрыть")</button></form></td></tr> }</tbody></table></div>
+</section>

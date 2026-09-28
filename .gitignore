@@ -1,0 +1,19 @@
+# .NET and Visual Studio build files
+**/bin/
+**/obj/
+.vs/
+.vscode/
+TestResults/
+*.user
+*.suo
+
+# Local data and generated distributions
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+release/
+
+# OS files
+.DS_Store
+Thumbs.db

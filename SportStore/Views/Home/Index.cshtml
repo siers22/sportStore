@@ -1,0 +1,41 @@
+@model List<Product>
+@{
+    ViewData["Title"] = "Главная";
+    var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
+}
+<section class="hero">
+    <div class="container hero-grid">
+        <div class="hero-copy">
+            <div class="eyebrow light">СПОРТ НАЧИНАЕТСЯ ЗДЕСЬ <span>●</span> МАРКЕТПЛЕЙС</div>
+            <h1>Найди свой<br /><em>ритм.</em></h1>
+            <p>Инвентарь для первых шагов, новых рекордов и всего, что между ними. Выбирай у независимых продавцов.</p>
+            <a class="button button-accent" asp-controller="Catalog" asp-action="Index">Смотреть каталог <span>↗</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+            <div class="hero-circle outer"></div><div class="hero-circle inner"></div>
+            <div class="hero-art-word">GO</div><div class="hero-art-arrow">↗</div>
+            <div class="hero-art-caption">ДВИЖЕНИЕ — ЭТО ТВОЙ ВЫБОР</div>
+        </div>
+    </div>
+</section>
+
+<section class="section container">
+    <div class="section-heading"><div><div class="eyebrow">ВЫБЕРИ НАПРАВЛЕНИЕ</div><h2>Для любого движения</h2></div><a class="text-link" asp-controller="Catalog" asp-action="Index">Весь каталог ↗</a></div>
+    <div class="category-grid">
+        @foreach (var category in categories)
+        {
+            <a class="category-tile" asp-controller="Catalog" asp-action="Index" asp-route-categoryId="@category.Id"><span>@category.Name</span><b>↗</b></a>
+        }
+    </div>
+</section>
+
+<section class="section section-products">
+    <div class="container">
+        <div class="section-heading"><div><div class="eyebrow">В КАТАЛОГЕ</div><h2>Свежие поступления</h2></div><a class="text-link" asp-controller="Catalog" asp-action="Index">Смотреть всё ↗</a></div>
+        <div class="product-grid">
+            @foreach (var product in Model) { <partial name="_ProductCard" model="product" /> }
+        </div>
+    </div>
+</section>
+
+<section class="container bottom-banner"><div><span class="eyebrow light">ОДНА ПЛОЩАДКА — МНОГО МАРШРУТОВ</span><h2>Твой следующий<br />шаг начинается здесь.</h2></div><a class="button button-light" asp-controller="Account" asp-action="Register">Присоединиться ↗</a></section>

@@ -1,0 +1,20 @@
+@model Purchase
+@{ ViewData["Title"] = $"Покупка №{Model.Id}"; }
+<section class="container page-space"><div class="breadcrumb"><a asp-action="Index">Мои заказы</a><span>/</span>Покупка №@Model.Id</div><div class="page-heading"><div class="eyebrow">ОПЛАЧЕНО ВИРТУАЛЬНОЙ КАРТОЙ</div><h1>Покупка №@Model.Id<span class="heading-dot">.</span></h1><p>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @Model.Total.ToString("N0") ₽</p></div>
+    <div class="order-layout"><div>
+        @foreach (var order in Model.SellerOrders)
+        {
+            <article class="order-panel"><div class="order-panel-head"><div><div class="eyebrow">ПРОДАВЕЦ</div><h2>@(order.Seller.SellerProfile?.StoreName ?? order.Seller.DisplayName)</h2></div><span class="status">@StatusText(order.Status)</span></div>
+                @foreach (var item in order.Items) { <div class="summary-row"><span>@item.ProductName × @item.Quantity</span><strong>@((item.UnitPrice * item.Quantity).ToString("N0")) ₽</strong></div> }
+                <div class="summary-total"><span>Итого у продавца</span><strong>@order.Total.ToString("N0") ₽</strong></div>
+            </article>
+        }
+    </div><aside class="summary-card"><div class="eyebrow">ПОЛУЧАТЕЛЬ</div><h2>@Model.RecipientName</h2><p>@Model.DeliveryAddress</p><p>@Model.ContactPhone</p><div class="summary-total"><span>Всего оплачено</span><strong>@Model.Total.ToString("N0") ₽</strong></div></aside></div>
+</section>
+@functions {
+    string StatusText(OrderStatus status) => status switch
+    {
+        OrderStatus.Paid => "Оплачен", OrderStatus.Processing => "В обработке",
+        OrderStatus.Shipped => "Отправлен", OrderStatus.Completed => "Завершён", _ => "Отменён"
+    };
+}

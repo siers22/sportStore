@@ -1,0 +1,19 @@
+@model ProductForm
+@{
+    var isEdit = ViewBag.ProductId != null;
+    ViewData["Title"] = isEdit ? "Изменить товар" : "Добавить товар";
+    var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
+}
+<section class="container page-space narrow"><div class="breadcrumb"><a asp-action="Products">Мои товары</a><span>/</span>@ViewData["Title"]</div><div class="page-heading"><div class="eyebrow">МОЙ МАГАЗИН</div><h1>@ViewData["Title"]<span class="heading-dot">.</span></h1></div>
+    <form action="@Url.Action(isEdit ? "EditProduct" : "CreateProduct", "Seller", new { id = ViewBag.ProductId })" method="post" class="form-panel stack-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="validation"></div>
+        <label asp-for="Name">Название</label><input asp-for="Name" /><span asp-validation-for="Name" class="validation"></span>
+        <label asp-for="Description">Описание</label><textarea asp-for="Description" rows="5"></textarea><span asp-validation-for="Description" class="validation"></span>
+        <div class="form-two"><div><label asp-for="Price">Цена, ₽</label><input asp-for="Price" type="number" min="0.01" step="0.01" /><span asp-validation-for="Price" class="validation"></span></div><div><label asp-for="Stock">Остаток</label><input asp-for="Stock" type="number" min="0" /><span asp-validation-for="Stock" class="validation"></span></div></div>
+        <label asp-for="CategoryId">Категория</label><select asp-for="CategoryId"><option value="0">Выберите категорию</option>@foreach (var category in categories) { <option value="@category.Id">@category.Name</option> }</select><span asp-validation-for="CategoryId" class="validation"></span>
+        <label asp-for="Visual">Изображение-заглушка</label><select asp-for="Visual"><option value="default">Универсальное</option><option value="shoe">Обувь</option><option value="backpack">Рюкзак</option><option value="rope">Скакалка</option><option value="dumbbell">Гантель</option><option value="mat">Коврик</option><option value="football">Футбольный мяч</option><option value="basketball">Баскетбольный мяч</option><option value="tent">Палатка</option><option value="bottle">Бутылка</option><option value="lamp">Фонарь</option><option value="helmet">Шлем</option></select>
+        <label class="check-row"><input asp-for="IsPublished" /> Опубликовать в каталоге</label>
+        <button class="button button-dark" type="submit">Сохранить товар ↗</button>
+    </form>
+</section>

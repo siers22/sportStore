@@ -1,0 +1,18 @@
+@model RegisterForm
+@{ ViewData["Title"] = "Регистрация"; }
+<section class="container auth-section">
+    <div class="auth-side"><div class="eyebrow light">НОВЫЙ МАРШРУТ</div><h1>Начни<br /><em>сегодня.</em></h1><p>Покупай снаряжение или открой собственный магазин на площадке.</p></div>
+    <div class="auth-card"><div class="eyebrow">ПРИСОЕДИНЯЙСЯ</div><h2>Создать аккаунт</h2><p>Уже есть аккаунт? <a asp-action="Login">Войти ↗</a></p>
+        <form asp-action="Register" method="post" class="stack-form">
+
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <label asp-for="DisplayName">Имя</label><input asp-for="DisplayName" autocomplete="name" /><span asp-validation-for="DisplayName" class="validation"></span>
+            <label asp-for="Email">Email</label><input asp-for="Email" autocomplete="email" /><span asp-validation-for="Email" class="validation"></span>
+            <label asp-for="Role">Тип аккаунта</label><select asp-for="Role"><option value="Buyer">Покупатель</option><option value="Seller">Продавец</option></select>
+            <label asp-for="StoreName">Название магазина <small>заполните, если регистрируетесь как продавец</small></label><input asp-for="StoreName" /><span asp-validation-for="StoreName" class="validation"></span>
+            <label asp-for="Password">Пароль</label><input asp-for="Password" type="password" autocomplete="new-password" placeholder="От 8 символов: заглавная буква, цифра и знак" /><span asp-validation-for="Password" class="validation"></span>
+            <label asp-for="ConfirmPassword">Повторите пароль</label><input asp-for="ConfirmPassword" type="password" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="validation"></span>
+            <button class="button button-dark full" type="submit">Зарегистрироваться ↗</button>
+        </form>
+    </div>
+</section>

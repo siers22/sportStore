@@ -1,0 +1,9 @@
+@model List<SellerOrder>
+@{ ViewData["Title"] = "Панель продавца"; var store = ViewBag.Store as SellerProfile; }
+<section class="container page-space">
+    <div class="dashboard-header"><div><div class="eyebrow">ПАНЕЛЬ ПРОДАВЦА</div><h1>@(store?.StoreName ?? "Мой магазин")<span class="heading-dot">.</span></h1><p>Управляйте товарами и заказами в одном месте.</p></div><a class="button button-accent" asp-action="CreateProduct">Добавить товар ↗</a></div>
+    <div class="stats-grid"><div class="stat-card"><span>ТОВАРЫ</span><strong>@ViewBag.ProductCount</strong><a asp-action="Products">Управлять ↗</a></div><div class="stat-card"><span>ЗАКАЗЫ</span><strong>@ViewBag.OrderCount</strong><a asp-action="Orders">Открыть ↗</a></div><div class="stat-card dark"><span>СУММА ЗАКАЗОВ</span><strong>@(((decimal)ViewBag.Revenue).ToString("N0")) ₽</strong><small>Демонстрационные платежи</small></div></div>
+    <div class="section-heading"><div><div class="eyebrow">ПОСЛЕДНИЕ</div><h2>Новые заказы</h2></div><a class="text-link" asp-action="Orders">Все заказы ↗</a></div>
+    @if (Model.Count == 0) { <div class="empty-state"><h2>Заказов пока нет</h2><p>Добавьте товары, чтобы покупатели могли их найти.</p></div> }
+    else { <div class="list-panel">@foreach (var order in Model) { <div class="list-row"><div><small>ЗАКАЗ №@order.Id</small><strong>@order.Purchase.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</strong></div><span>@order.Total.ToString("N0") ₽</span><b>@order.Status</b></div> }</div> }
+</section>

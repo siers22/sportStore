@@ -1,0 +1,30 @@
+@model List<CartItem>
+@{
+    ViewData["Title"] = "Корзина";
+    var total = Model.Sum(i => i.Product.Price * i.Quantity);
+}
+<section class="container page-space">
+    <div class="page-heading"><div class="eyebrow">ВАШ ВЫБОР</div><h1>Корзина<span class="heading-dot">.</span></h1><p>@Model.Count товар(ов) в корзине</p></div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state"><h2>Пока пусто</h2><p>Самое время найти что-то для нового движения.</p><a class="button button-dark" asp-controller="Catalog" asp-action="Index">Перейти в каталог ↗</a></div>
+    }
+    else
+    {
+        <div class="cart-layout">
+            <div class="cart-list">
+                @foreach (var item in Model)
+                {
+                    <article class="cart-item">
+                        <div class="cart-thumb tone-@item.Product.Visual">✳</div>
+                        <div class="cart-item-main"><div class="eyebrow">@(item.Product.Seller.SellerProfile?.StoreName ?? item.Product.Seller.DisplayName)</div><a asp-controller="Catalog" asp-action="Details" asp-route-id="@item.ProductId">@item.Product.Name</a><p>@item.Product.Price.ToString("N0") ₽ / шт.</p></div>
+                        <form asp-action="Update" asp-route-id="@item.Id" method="post" class="cart-quantity"><input type="number" name="quantity" value="@item.Quantity" min="0" max="@item.Product.Stock" aria-label="Количество" /><button type="submit">Обновить</button></form>
+                        <strong>@((item.Product.Price * item.Quantity).ToString("N0")) ₽</strong>
+                        <form asp-action="Remove" asp-route-id="@item.Id" method="post"><button class="remove-button" type="submit" aria-label="Удалить">×</button></form>
+                    </article>
+                }
+            </div>
+            <aside class="summary-card"><div class="eyebrow">ВАШ ЗАКАЗ</div><h2>Итого</h2><div class="summary-row"><span>Товары</span><strong>@total.ToString("N0") ₽</strong></div><div class="summary-row"><span>Доставка</span><strong>По договорённости</strong></div><div class="summary-total"><span>К оплате</span><strong>@total.ToString("N0") ₽</strong></div><a class="button button-accent full" asp-controller="Checkout" asp-action="Index">Оформить заказ ↗</a><small>Оплата демонстрационная, виртуальными деньгами.</small></aside>
+        </div>
+    }
+</section>

@@ -1,0 +1,7 @@
+@model List<Complaint>
+@{ ViewData["Title"] = "Мои жалобы"; }
+<section class="container page-space"><div class="page-heading"><div class="eyebrow">ОБРАТНАЯ СВЯЗЬ</div><h1>Мои жалобы<span class="heading-dot">.</span></h1><p>Здесь видно, что решил администратор.</p></div>
+    @if (Model.Count == 0) { <div class="empty-state"><h2>Жалоб пока нет</h2><p>Если возникнет проблема с товаром, сообщите нам со страницы товара.</p><a class="button button-dark" asp-controller="Catalog" asp-action="Index">В каталог</a></div> }
+    else { <div class="complaint-list">@foreach (var complaint in Model) { <article class="complaint-card"><div class="row-between"><div><small>ЖАЛОБА №@complaint.Id · @complaint.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</small><h2>@complaint.Product.Name</h2></div><span class="status">@StatusText(complaint.Status)</span></div><p>@complaint.Reason</p>@if (!string.IsNullOrWhiteSpace(complaint.AdminComment)) { <div class="admin-response"><strong>Ответ администратора</strong><p>@complaint.AdminComment</p></div> }</article> }</div> }
+</section>
+@functions { string StatusText(ComplaintStatus status) => status switch { ComplaintStatus.New => "Новая", ComplaintStatus.InReview => "На рассмотрении", _ => "Закрыта" }; }

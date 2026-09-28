@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5080:8080"
+    volumes:
+      - store_data:/app/data
+    environment:
+      SPORTSTORE_DATA_DIR: /app/data
+
+volumes:
+  store_data:

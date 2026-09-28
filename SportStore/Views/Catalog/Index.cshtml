@@ -1,0 +1,19 @@
+@model List<Product>
+@{
+    ViewData["Title"] = "Каталог";
+    var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
+    int? selected = ViewBag.CategoryId;
+    string? sort = ViewBag.Sort;
+}
+<section class="container page-space">
+    <div class="page-heading"><div class="eyebrow">ТОВАРЫ ДЛЯ ДВИЖЕНИЯ</div><h1>Каталог<span class="heading-dot">.</span></h1><p>Найди то, что поможет двигаться дальше.</p></div>
+    <form class="catalog-toolbar" method="get" asp-controller="Catalog" asp-action="Index">
+        <label class="search-field"><span class="sr-only">Поиск</span><input name="q" value="@ViewBag.Query" placeholder="Поиск по товарам" /></label>
+        <label><span class="sr-only">Категория</span><select name="categoryId"><option value="">Все категории</option>@foreach (var category in categories) { <option value="@category.Id" selected="@(selected == category.Id)">@category.Name</option> }</select></label>
+        <label><span class="sr-only">Сортировка</span><select name="sort"><option value="">Сначала новые</option><option value="price_asc" selected="@(sort == "price_asc")">Сначала дешевле</option><option value="price_desc" selected="@(sort == "price_desc")">Сначала дороже</option></select></label>
+        <button class="button button-dark" type="submit">Найти ↗</button>
+    </form>
+    <div class="result-line">Найдено товаров: <strong>@Model.Count</strong></div>
+    @if (Model.Count == 0) { <div class="empty-state"><h2>Ничего не найдено</h2><p>Попробуйте другой запрос или сбросьте фильтры.</p><a class="button button-dark" asp-action="Index">Сбросить</a></div> }
+    else { <div class="product-grid">@foreach (var product in Model) { <partial name="_ProductCard" model="product" /> }</div> }
+</section>

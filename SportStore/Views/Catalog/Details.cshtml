@@ -1,0 +1,33 @@
+@model Product
+@{
+    ViewData["Title"] = Model.Name;
+    var icon = Model.Visual switch { "shoe" => "↗", "football" => "⚽", "tent" => "△", "dumbbell" => "▰", _ => "✳" };
+}
+<section class="container page-space">
+    <div class="breadcrumb"><a asp-action="Index">Каталог</a><span>/</span><a asp-action="Index" asp-route-categoryId="@Model.CategoryId">@Model.Category.Name</a><span>/</span>@Model.Name</div>
+    <div class="details-grid">
+        <div class="details-art tone-@Model.Visual"><span>@icon</span><small>ДВИЖЕНИЕ / @Model.Category.Name.ToUpper()</small></div>
+        <div class="details-info">
+            <div class="eyebrow">@Model.Category.Name.ToUpper() · @(Model.Seller.SellerProfile?.StoreName ?? Model.Seller.DisplayName)</div>
+            <h1>@Model.Name</h1>
+            <p class="details-description">@Model.Description</p>
+            <div class="details-price">@Model.Price.ToString("N0") ₽</div>
+            <div class="stock-label">● В наличии: @Model.Stock шт.</div>
+            @if (User.IsInRole(Roles.Buyer))
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post" class="details-buy">
+
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <label>Количество <input type="number" name="quantity" value="1" min="1" max="@Model.Stock" /></label>
+                    <button class="button button-accent" type="submit">Добавить в корзину ↗</button>
+                </form>
+                <a class="text-link complaint-link" asp-controller="Complaints" asp-action="Create" asp-route-productId="@Model.Id">Пожаловаться на товар</a>
+            }
+            else if (User.Identity?.IsAuthenticated != true)
+            {
+                <a class="button button-accent" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Context.Request.Path.ToString()">Войдите, чтобы купить ↗</a>
+            }
+            <div class="details-note"><strong>Безопасная демонстрация</strong><p>Покупка оплачивается виртуальной картой. Реальные деньги не списываются.</p></div>
+        </div>
+    </div>
+</section>

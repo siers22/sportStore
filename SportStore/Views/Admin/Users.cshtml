@@ -1,0 +1,5 @@
+@model List<AppUser>
+@{ ViewData["Title"] = "Пользователи"; var roles = ViewBag.Roles as Dictionary<string, string> ?? new Dictionary<string, string>(); }
+<section class="container page-space"><div class="breadcrumb"><a asp-action="Index">Панель администратора</a><span>/</span>Пользователи</div><div class="page-heading"><div class="eyebrow">МОДЕРАЦИЯ</div><h1>Пользователи<span class="heading-dot">.</span></h1></div>
+    <div class="table-wrap"><table><thead><tr><th>Имя</th><th>Email</th><th>Роль</th><th>Статус</th><th></th></tr></thead><tbody>@foreach (var user in Model) { <tr><td><strong>@user.DisplayName</strong></td><td>@user.Email</td><td>@(roles.GetValueOrDefault(user.Id) ?? "—")</td><td><span class="status">@(user.IsBlocked ? "Заблокирован" : "Активен")</span></td><td>@if (!roles.GetValueOrDefault(user.Id, "").Contains(Roles.Admin)) { <form asp-action="ToggleBlock" asp-route-id="@user.Id" method="post"><button class="text-link link-button" type="submit">@(user.IsBlocked ? "Разблокировать" : "Заблокировать")</button></form> }</td></tr> }</tbody></table></div>
+</section>

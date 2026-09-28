@@ -1,0 +1,5 @@
+@model ComplaintForm
+@{ ViewData["Title"] = "Отправить жалобу"; var product = ViewBag.Product as Product; }
+<section class="container page-space narrow"><div class="breadcrumb"><a asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.ProductId">@product?.Name</a><span>/</span>Жалоба</div><div class="page-heading"><div class="eyebrow">СООБЩИТЬ О ПРОБЛЕМЕ</div><h1>Жалоба<span class="heading-dot">.</span></h1><p>Товар: @product?.Name</p></div>
+    <form asp-action="Create" method="post" class="form-panel stack-form"><input asp-for="ProductId" type="hidden" /><div asp-validation-summary="ModelOnly" class="validation"></div><label asp-for="Reason">Опишите проблему</label><textarea asp-for="Reason" rows="7" placeholder="Что случилось?"></textarea><span asp-validation-for="Reason" class="validation"></span><button class="button button-dark" type="submit">Отправить жалобу ↗</button></form>
+</section>

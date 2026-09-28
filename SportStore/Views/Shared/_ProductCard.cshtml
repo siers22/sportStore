@@ -1,0 +1,19 @@
+@model Product
+@{
+    var icon = Model.Visual switch
+    {
+        "shoe" => "↗", "backpack" => "◈", "rope" => "∞", "dumbbell" => "▰",
+        "mat" => "▱", "football" => "⚽", "basketball" => "●", "tent" => "△",
+        "bottle" => "◉", "lamp" => "✦", "helmet" => "◕", _ => "✳"
+    };
+}
+<article class="product-card">
+    <a asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.Id" class="product-image tone-@Model.Visual" aria-label="@Model.Name">
+        <span class="product-glyph">@icon</span><span class="product-image-label">MOVE / 2026</span>
+    </a>
+    <div class="product-card-body">
+        <div class="product-meta"><span>@Model.Category.Name</span><span>@(Model.Seller.SellerProfile?.StoreName ?? Model.Seller.DisplayName)</span></div>
+        <a class="product-name" asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.Id">@Model.Name</a>
+        <div class="product-card-bottom"><strong>@Model.Price.ToString("N0") ₽</strong><a asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.Id" aria-label="Подробнее о @Model.Name">↗</a></div>
+    </div>
+</article>

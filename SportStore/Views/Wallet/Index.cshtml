@@ -1,0 +1,12 @@
+@model VirtualCard
+@{
+    ViewData["Title"] = "Виртуальная карта";
+    var transactions = ViewBag.Transactions as List<PaymentTransaction> ?? new List<PaymentTransaction>();
+}
+<section class="container page-space narrow">
+    <div class="page-heading"><div class="eyebrow">МОИ ФИНАНСЫ</div><h1>Виртуальная карта<span class="heading-dot">.</span></h1><p>Баланс и история демонстрационных списаний.</p></div>
+    <div class="virtual-card wallet-card"><span>ДВИЖЕНИЕ · DEMO CARD</span><strong>•••• •••• •••• @Model.LastFour</strong><small>Доступно: @Model.Balance.ToString("N0") ₽</small></div>
+    <div class="section-heading"><div><div class="eyebrow">ОПЕРАЦИИ</div><h2>История платежей</h2></div></div>
+    @if (transactions.Count == 0) { <div class="empty-state"><h2>Платежей пока нет</h2><p>После первой покупки здесь появится списание.</p></div> }
+    else { <div class="list-panel">@foreach (var payment in transactions) { <a class="list-row" asp-controller="Orders" asp-action="Details" asp-route-id="@payment.PurchaseId"><div><small>@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small><strong>Покупка №@payment.PurchaseId</strong></div><span>−@payment.Amount.ToString("N0") ₽</span><b>↗</b></a> }</div> }
+</section>

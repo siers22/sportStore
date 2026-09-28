@@ -1,0 +1,10 @@
+@model List<SellerOrder>
+@{ ViewData["Title"] = "Заказы магазина"; }
+<section class="container page-space"><div class="page-heading"><div class="eyebrow">МОЙ МАГАЗИН</div><h1>Заказы<span class="heading-dot">.</span></h1><p>Здесь видны только заказы с вашими товарами.</p></div>
+    @if (Model.Count == 0) { <div class="empty-state"><h2>Заказов пока нет</h2></div> }
+    else { <div class="complaint-list">@foreach (var order in Model) { <article class="order-panel"><div class="order-panel-head"><div><div class="eyebrow">ЗАКАЗ №@order.Id · @order.Purchase.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</div><h2>@order.Purchase.RecipientName</h2><p>@order.Purchase.DeliveryAddress · @order.Purchase.ContactPhone</p></div><span class="status">@StatusText(order.Status)</span></div>@foreach (var item in order.Items) { <div class="summary-row"><span>@item.ProductName × @item.Quantity</span><strong>@((item.UnitPrice * item.Quantity).ToString("N0")) ₽</strong></div> }<div class="summary-total"><span>Итого</span><strong>@order.Total.ToString("N0") ₽</strong></div>@if (order.Status is OrderStatus.Paid or OrderStatus.Processing or OrderStatus.Shipped) { <form asp-action="AdvanceOrder" asp-route-id="@order.Id" method="post"><button class="button button-dark" type="submit">@NextAction(order.Status) ↗</button></form> }</article> }</div> }
+</section>
+@functions {
+    string StatusText(OrderStatus status) => status switch { OrderStatus.Paid => "Оплачен", OrderStatus.Processing => "В обработке", OrderStatus.Shipped => "Отправлен", OrderStatus.Completed => "Завершён", _ => "Отменён" };
+    string NextAction(OrderStatus status) => status switch { OrderStatus.Paid => "Взять в работу", OrderStatus.Processing => "Отметить отправленным", _ => "Завершить заказ" };
+}

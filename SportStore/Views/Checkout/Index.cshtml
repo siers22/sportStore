@@ -1,0 +1,31 @@
+@model CheckoutForm
+@{
+    ViewData["Title"] = "Оформление заказа";
+    var items = ViewBag.Items as List<CartItem> ?? new List<CartItem>();
+    var card = ViewBag.Card as VirtualCard;
+    var total = items.Sum(i => i.Product.Price * i.Quantity);
+}
+<section class="container page-space">
+    <div class="page-heading"><div class="eyebrow">ПОЧТИ ГОТОВО</div><h1>Оформление<span class="heading-dot">.</span></h1><p>Проверьте данные и подтвердите демонстрационную оплату.</p></div>
+    @if (items.Count == 0)
+    {
+        <div class="empty-state"><h2>Корзина пуста</h2><a class="button button-dark" asp-controller="Catalog" asp-action="Index">В каталог</a></div>
+    }
+    else
+    {
+        <div class="cart-layout">
+            <form asp-action="Index" method="post" class="form-panel stack-form">
+
+                <div class="eyebrow">ДОСТАВКА</div><h2>Данные получателя</h2>
+                <div asp-validation-summary="ModelOnly" class="validation"></div>
+                <label asp-for="RecipientName">Имя получателя</label><input asp-for="RecipientName" /><span asp-validation-for="RecipientName" class="validation"></span>
+                <label asp-for="DeliveryAddress">Адрес доставки</label><input asp-for="DeliveryAddress" placeholder="Город, улица, дом, квартира" /><span asp-validation-for="DeliveryAddress" class="validation"></span>
+                <label asp-for="ContactPhone">Телефон</label><input asp-for="ContactPhone" placeholder="+7 900 000-00-00" /><span asp-validation-for="ContactPhone" class="validation"></span>
+                <div class="virtual-card"><span>ВИРТУАЛЬНАЯ КАРТА</span><strong>•••• •••• •••• @(card?.LastFour ?? "4242")</strong><small>Баланс: @(card?.Balance.ToString("N0") ?? "0") ₽</small></div>
+                <button class="button button-accent full" type="submit">Оплатить @total.ToString("N0") ₽ ↗</button>
+                <small>Это имитация оплаты. Настоящие деньги не списываются.</small>
+            </form>
+            <aside class="summary-card"><div class="eyebrow">СОСТАВ ПОКУПКИ</div><h2>Ваш заказ</h2>@foreach (var item in items) { <div class="summary-row"><span>@item.Product.Name × @item.Quantity</span><strong>@((item.Product.Price * item.Quantity).ToString("N0")) ₽</strong></div> }<div class="summary-total"><span>К оплате</span><strong>@total.ToString("N0") ₽</strong></div><small>Товары разных продавцов станут отдельными заказами после оплаты.</small></aside>
+        </div>
+    }
+</section>
