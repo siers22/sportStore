@@ -5,7 +5,7 @@
     var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
 }
 <section class="container page-space narrow"><div class="breadcrumb"><a asp-action="Products">Мои товары</a><span>/</span>@ViewData["Title"]</div><div class="page-heading"><div class="eyebrow">МОЙ МАГАЗИН</div><h1>@ViewData["Title"]<span class="heading-dot">.</span></h1></div>
-    <form action="@Url.Action(isEdit ? "EditProduct" : "CreateProduct", "Seller", new { id = ViewBag.ProductId })" method="post" class="form-panel stack-form">
+    <form action="@Url.Action(isEdit ? "EditProduct" : "CreateProduct", "Seller", new { id = ViewBag.ProductId })" method="post" enctype="multipart/form-data" class="form-panel stack-form">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="validation"></div>
         @if (ViewBag.ModerationStatus is ProductModerationStatus status && status != ProductModerationStatus.Approved)
@@ -18,7 +18,18 @@
         <label asp-for="Description">Описание</label><textarea asp-for="Description" rows="5"></textarea><span asp-validation-for="Description" class="validation"></span>
         <div class="form-two"><div><label asp-for="Price">Цена, ₽</label><input asp-for="Price" type="number" min="0.01" step="0.01" /><span asp-validation-for="Price" class="validation"></span></div><div><label asp-for="Stock">Остаток</label><input asp-for="Stock" type="number" min="0" /><span asp-validation-for="Stock" class="validation"></span></div></div>
         <label asp-for="CategoryId">Категория</label><select asp-for="CategoryId"><option value="0">Выберите категорию</option>@foreach (var category in categories) { <option value="@category.Id">@category.Name</option> }</select><span asp-validation-for="CategoryId" class="validation"></span>
-        <label asp-for="Visual">Изображение-заглушка</label><select asp-for="Visual"><option value="default">Универсальное</option><option value="shoe">Обувь</option><option value="backpack">Рюкзак</option><option value="rope">Скакалка</option><option value="dumbbell">Гантель</option><option value="mat">Коврик</option><option value="football">Футбольный мяч</option><option value="basketball">Баскетбольный мяч</option><option value="tent">Палатка</option><option value="bottle">Бутылка</option><option value="lamp">Фонарь</option><option value="helmet">Шлем</option></select>
+        <label asp-for="Photo">Фото товара</label>
+        <div class="photo-upload">
+            <img id="photo-preview" class="photo-preview" src="@Model.ExistingImagePath" alt="Предпросмотр фото товара" hidden="@(Model.ExistingImagePath is null)" />
+            <input asp-for="Photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help" />
+            <small id="photo-help">JPG, PNG или WebP, до 5 МБ. Фото появится в каталоге и карточке товара. После ошибки формы выберите файл заново.</small>
+        </div>
+        <span asp-validation-for="Photo" class="validation"></span>
+        @if (Model.ExistingImagePath is not null)
+        {
+            <label class="check-row"><input asp-for="RemovePhoto" /> Удалить текущее фото</label>
+        }
+        <label asp-for="Visual">Заглушка, если фото не загружено</label><select asp-for="Visual"><option value="default">Универсальное</option><option value="shoe">Обувь</option><option value="backpack">Рюкзак</option><option value="rope">Скакалка</option><option value="dumbbell">Гантель</option><option value="mat">Коврик</option><option value="football">Футбольный мяч</option><option value="basketball">Баскетбольный мяч</option><option value="tent">Палатка</option><option value="bottle">Бутылка</option><option value="lamp">Фонарь</option><option value="helmet">Шлем</option></select>
         <label class="check-row"><input asp-for="IsPublished" /> Опубликовать в каталоге</label>
         <button class="button button-dark" type="submit">Сохранить товар ↗</button>
     </form>

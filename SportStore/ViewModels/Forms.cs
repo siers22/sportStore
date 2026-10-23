@@ -41,6 +41,10 @@ public class ProductForm
     [Range(1, int.MaxValue, ErrorMessage = "Выберите категорию.")]
     public int CategoryId { get; set; }
     public string Visual { get; set; } = "default";
+    public IFormFile? Photo { get; set; }
+    public bool RemovePhoto { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public string? ExistingImagePath { get; set; }
     public bool IsPublished { get; set; } = true;
 }
 
@@ -50,10 +54,37 @@ public class CheckoutForm
     public string RecipientName { get; set; } = "";
     [Required(ErrorMessage = "Укажите адрес доставки."), StringLength(200)]
     public string DeliveryAddress { get; set; } = "";
-    [Required(ErrorMessage = "Укажите телефон."), StringLength(30)]
-    [RegularExpression(@"^(?:\+7|8)[\s-]*(?:\(\d{3}\)|\d{3})[\s-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}$",
-        ErrorMessage = "Введите российский номер: +7 900 000-00-00 или 8 900 000-00-00.")]
+    [Required(ErrorMessage = "Укажите телефон.")]
+    [RegularExpression(@"^[0-9]{10,15}$", ErrorMessage = "Введите только цифры: от 10 до 15 цифр, без пробелов и знака +.")]
     public string ContactPhone { get; set; } = "";
+}
+
+public class TopUpForm : IValidatableObject
+{
+    public Guid OperationId { get; set; } = Guid.NewGuid();
+    [Range(typeof(decimal), "100", "1000000", ErrorMessage = "Сумма пополнения — от 100 до 1 000 000 ₽.")]
+    public decimal Amount { get; set; } = 1000m;
+    [Required(ErrorMessage = "Введите номер демонстрационной карты.")]
+    [RegularExpression(@"^[0-9]{16}$", ErrorMessage = "В номере карты должно быть 16 цифр.")]
+    public string CardNumber { get; set; } = "4242424242424242";
+    [Required(ErrorMessage = "Укажите срок действия.")]
+    [RegularExpression(@"^(0[1-9]|1[0-2])/[0-9]{2}$", ErrorMessage = "Введите срок в формате ММ/ГГ.")]
+    public string Expiry { get; set; } = $"12/{DateTime.UtcNow.AddYears(3):yy}";
+    [Required(ErrorMessage = "Введите CVC.")]
+    [RegularExpression(@"^[0-9]{3}$", ErrorMessage = "CVC должен содержать 3 цифры.")]
+    public string Cvc { get; set; } = "";
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (OperationId == Guid.Empty)
+            yield return new ValidationResult("Обновите страницу и повторите пополнение.", [nameof(OperationId)]);
+        if (decimal.Round(Amount, 2) != Amount)
+            yield return new ValidationResult("Укажите сумму с точностью до копеек.", [nameof(Amount)]);
+        if (Expiry is { Length: 5 } && int.TryParse(Expiry[..2], out var month) &&
+            month is >= 1 and <= 12 && int.TryParse(Expiry[3..], out var year) &&
+            new DateTime(2000 + year, month, 1).AddMonths(1) <= DateTime.UtcNow)
+            yield return new ValidationResult("Срок действия карты истёк.", [nameof(Expiry)]);
+    }
 }
 
 public class ComplaintForm

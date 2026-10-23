@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using SportStore.Data;
 using SportStore.Models;
 using SportStore.Services;
@@ -9,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 var dataDirectory = Environment.GetEnvironmentVariable("SPORTSTORE_DATA_DIR") ?? AppContext.BaseDirectory;
 Directory.CreateDirectory(dataDirectory);
+var imageDirectory = Path.Combine(dataDirectory, "product-images");
+Directory.CreateDirectory(imageDirectory);
+builder.Services.AddSingleton(new ProductImageStore(imageDirectory));
 var databasePath = Path.Combine(dataDirectory, "sportstore.db");
 builder.Services.AddDbContext<StoreDbContext>(options =>
     options.UseSqlite($"Data Source={databasePath}"));
@@ -40,6 +44,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageDirectory),
+    RequestPath = "/uploads/products"
+});
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

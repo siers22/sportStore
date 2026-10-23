@@ -11,6 +11,7 @@ public static class DbSeeder
         var db = services.GetRequiredService<StoreDbContext>();
         await db.Database.EnsureCreatedAsync();
         await UpdateSchemaAsync(db);
+        await SchemaUpgrade.ApplyAsync(db);
 
         var roles = services.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { Roles.Buyer, Roles.Seller, Roles.Admin })

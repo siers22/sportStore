@@ -16,7 +16,10 @@
                 @foreach (var item in Model)
                 {
                     <article class="cart-item">
-                        <div class="cart-thumb tone-@item.Product.Visual">✳</div>
+                        <div class="cart-thumb tone-@item.Product.Visual">
+                            @if (item.Product.ImagePath is not null) { <img class="product-photo" src="@item.Product.ImagePath" alt="@item.Product.Name" /> }
+                            else { <span>✳</span> }
+                        </div>
                         <div class="cart-item-main"><div class="eyebrow">@(item.Product.Seller.SellerProfile?.StoreName ?? item.Product.Seller.DisplayName)</div><a asp-controller="Catalog" asp-action="Details" asp-route-id="@item.ProductId">@item.Product.Name</a><p>@item.Product.Price.ToString("N0") ₽ / шт.</p></div>
                         <form asp-action="Update" asp-route-id="@item.Id" method="post" class="cart-quantity"><input type="number" name="quantity" value="@item.Quantity" min="0" max="@item.Product.Stock" aria-label="Количество" /><button type="submit">Обновить</button></form>
                         <strong>@((item.Product.Price * item.Quantity).ToString("N0")) ₽</strong>

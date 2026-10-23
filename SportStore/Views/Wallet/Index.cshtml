@@ -1,12 +1,34 @@
 @model VirtualCard
 @{
+    var moneyCulture = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
     ViewData["Title"] = "Виртуальная карта";
-    var transactions = ViewBag.Transactions as List<PaymentTransaction> ?? new List<PaymentTransaction>();
+    var payments = ViewBag.Transactions as List<PaymentTransaction> ?? new List<PaymentTransaction>();
+    var topUps = ViewBag.TopUps as List<WalletTopUp> ?? new List<WalletTopUp>();
+    var operations = payments.Select(p => (p.CreatedAt, Amount: -p.Amount, PurchaseId: (int?)p.PurchaseId, TopUpId: (Guid?)null))
+        .Concat(topUps.Select(t => (t.CreatedAt, t.Amount, PurchaseId: (int?)null, TopUpId: (Guid?)t.Id)))
+        .OrderByDescending(t => t.CreatedAt).ToList();
 }
 <section class="container page-space narrow">
-    <div class="page-heading"><div class="eyebrow">МОИ ФИНАНСЫ</div><h1>Виртуальная карта<span class="heading-dot">.</span></h1><p>Баланс и история демонстрационных списаний.</p></div>
-    <div class="virtual-card wallet-card"><span>ДВИЖЕНИЕ · DEMO CARD</span><strong>•••• •••• •••• @Model.LastFour</strong><small>Доступно: @Model.Balance.ToString("N0") ₽</small></div>
-    <div class="section-heading"><div><div class="eyebrow">ОПЕРАЦИИ</div><h2>История платежей</h2></div></div>
-    @if (transactions.Count == 0) { <div class="empty-state"><h2>Платежей пока нет</h2><p>После первой покупки здесь появится списание.</p></div> }
-    else { <div class="list-panel">@foreach (var payment in transactions) { <a class="list-row" asp-controller="Orders" asp-action="Details" asp-route-id="@payment.PurchaseId"><div><small>@payment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small><strong>Покупка №@payment.PurchaseId</strong></div><span>−@payment.Amount.ToString("N0") ₽</span><b>↗</b></a> }</div> }
+    <div class="page-heading"><div class="eyebrow">МОИ ФИНАНСЫ</div><h1>Виртуальная карта<span class="heading-dot">.</span></h1><p>Пополняйте баланс и следите за историей операций.</p></div>
+    <div class="virtual-card wallet-card"><span>ДВИЖЕНИЕ · DEMO CARD</span><strong>•••• •••• •••• @Model.LastFour</strong><small>Доступно: @Model.Balance.ToString("N2", moneyCulture) ₽</small></div>
+    <div class="wallet-actions"><a class="button button-accent" asp-action="TopUp">Пополнить карту +</a><small>Демонстрационные средства для покупок в магазине.</small></div>
+    <div class="section-heading"><div><div class="eyebrow">ОПЕРАЦИИ</div><h2>История операций</h2></div></div>
+    @if (operations.Count == 0)
+    {
+        <div class="empty-state"><h2>Операций пока нет</h2><p>Пополните карту или оплатите покупку — операция появится здесь.</p></div>
+    }
+    else
+    {
+        <div class="list-panel">
+            @foreach (var operation in operations)
+            {
+                var isTopUp = operation.TopUpId.HasValue;
+                var url = isTopUp ? Url.Action("Receipt", "Wallet", new { id = operation.TopUpId }) : Url.Action("Details", "Orders", new { id = operation.PurchaseId });
+                <a class="list-row" href="@url">
+                    <div><small>@operation.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small><strong>@(isTopUp ? "Пополнение карты" : $"Покупка №{operation.PurchaseId}")</strong></div>
+                    <span class="@(isTopUp ? "amount-positive" : "")">@(isTopUp ? "+" : "−")@Math.Abs(operation.Amount).ToString("N2", moneyCulture) ₽</span><b>↗</b>
+                </a>
+            }
+        </div>
+    }
 </section>

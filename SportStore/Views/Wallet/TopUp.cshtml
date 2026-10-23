@@ -1,0 +1,49 @@
+@model TopUpForm
+@{
+    var moneyCulture = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
+    ViewData["Title"] = "Пополнение карты";
+    var card = (VirtualCard)ViewBag.Card;
+}
+<section class="container page-space">
+    <div class="breadcrumb"><a asp-action="Index">Виртуальная карта</a><span>/</span>Пополнение</div>
+    <div class="page-heading"><div class="eyebrow">МОИ ФИНАНСЫ</div><h1>Пополнить карту<span class="heading-dot">.</span></h1><p>Ещё больше движения. Переведите средства на баланс магазина.</p></div>
+    <div class="topup-layout">
+        <form asp-action="TopUp" method="post" class="form-panel stack-form" id="topup-form">
+            <input asp-for="OperationId" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <span asp-validation-for="OperationId" class="validation"></span>
+            <div class="payment-step"><span>01</span><h2>Сумма пополнения</h2></div>
+            <label asp-for="Amount">Сумма, ₽</label>
+            <input asp-for="Amount" type="number" min="100" max="1000000" step="0.01" required />
+            <span asp-validation-for="Amount" class="validation"></span>
+            <div class="amount-presets" aria-label="Быстрый выбор суммы">
+                <button type="button" data-amount="500">500 ₽</button><button type="button" data-amount="1000">1 000 ₽</button><button type="button" data-amount="5000">5 000 ₽</button><button type="button" data-amount="10000">10 000 ₽</button>
+            </div>
+            <div class="payment-step"><span>02</span><h2>Откуда перевести</h2></div>
+            <div class="demo-payment-note"><strong>Демонстрационный перевод</strong><p>Используйте тестовые реквизиты ниже. Не вводите данные настоящей карты. Реальные деньги не списываются.</p></div>
+            <div class="bank-card-fields">
+                <div class="bank-card-heading"><span>БАНКОВСКАЯ КАРТА</span><b>DEMO</b></div>
+                <label asp-for="CardNumber">Номер карты</label>
+                <input asp-for="CardNumber" inputmode="numeric" data-digits-only minlength="16" maxlength="16" pattern="[0-9]{16}" autocomplete="off" required />
+                <span asp-validation-for="CardNumber" class="validation"></span>
+                <div class="form-two">
+                    <div><label asp-for="Expiry">Срок действия</label><input asp-for="Expiry" placeholder="ММ/ГГ" maxlength="5" inputmode="numeric" pattern="(0[1-9]|1[0-2])/[0-9]{2}" autocomplete="off" required /><span asp-validation-for="Expiry" class="validation"></span></div>
+                    <div><label asp-for="Cvc">CVC / CVV</label><input asp-for="Cvc" type="password" placeholder="123" inputmode="numeric" data-digits-only minlength="3" maxlength="3" pattern="[0-9]{3}" autocomplete="off" required /><span asp-validation-for="Cvc" class="validation"></span></div>
+                </div>
+            </div>
+            <button class="button button-accent full" type="submit">Пополнить <span id="topup-button-amount">@Model.Amount.ToString("N2", moneyCulture) ₽</span> ↗</button>
+            <small>Комиссия — 0 ₽. Средства поступят на виртуальный баланс сразу после подтверждения.</small>
+        </form>
+        <aside class="topup-summary">
+            <div class="eyebrow">КУДА ПЕРЕВОДИМ</div>
+            <div class="virtual-card wallet-card"><span>ДВИЖЕНИЕ · DEMO CARD</span><strong>•••• •••• •••• @card.LastFour</strong><small>Доступно: @card.Balance.ToString("N2", moneyCulture) ₽</small></div>
+            <div class="summary-card">
+                <h2>Детали перевода</h2>
+                <div class="summary-row"><span>Пополнение</span><strong id="topup-summary-amount">@Model.Amount.ToString("N2", moneyCulture) ₽</strong></div>
+                <div class="summary-row"><span>Комиссия</span><strong>0 ₽</strong></div>
+                <div class="summary-row"><span>Зачисление</span><strong>Мгновенно</strong></div>
+                <small>От 100 до 1 000 000 ₽ за один перевод. История пополнений сохраняется в разделе «Карта».</small>
+            </div>
+        </aside>
+    </div>
+</section>

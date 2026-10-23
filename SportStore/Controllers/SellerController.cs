@@ -5,11 +5,12 @@ using Microsoft.EntityFrameworkCore;
 using SportStore.Data;
 using SportStore.Models;
 using SportStore.ViewModels;
+using SportStore.Services;
 
 namespace SportStore.Controllers;
 
 [Authorize(Roles = Roles.Seller)]
-public class SellerController(StoreDbContext db) : Controller
+public class SellerController(StoreDbContext db, ProductImageStore images) : Controller
 {
     private string SellerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -35,11 +36,12 @@ public class SellerController(StoreDbContext db) : Controller
         return View("ProductForm", new ProductForm());
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> CreateProduct(ProductForm form)
     {
         if (!await db.Categories.AnyAsync(c => c.Id == form.CategoryId))
             ModelState.AddModelError(nameof(form.CategoryId), "Выберите категорию.");
+        var imagePath = await SavePhotoAsync(form);
         if (!ModelState.IsValid)
         {
             await FillCategoriesAsync();
@@ -49,9 +51,10 @@ public class SellerController(StoreDbContext db) : Controller
         {
             SellerId = SellerId, Name = form.Name.Trim(), Description = form.Description.Trim(),
             Price = form.Price, Stock = form.Stock, CategoryId = form.CategoryId,
-            Visual = CleanVisual(form.Visual), IsPublished = form.IsPublished
+            Visual = CleanVisual(form.Visual), IsPublished = form.IsPublished, ImagePath = imagePath
         });
-        await db.SaveChangesAsync();
+        try { await db.SaveChangesAsync(); }
+        catch { images.Delete(imagePath); throw; }
         TempData["Success"] = "Товар добавлен.";
         return RedirectToAction("Products");
     }
@@ -69,17 +72,19 @@ public class SellerController(StoreDbContext db) : Controller
         {
             Name = product.Name, Description = product.Description, Price = product.Price,
             Stock = product.Stock, CategoryId = product.CategoryId, Visual = product.Visual,
-            IsPublished = product.IsPublished
+            IsPublished = product.IsPublished, ExistingImagePath = product.ImagePath
         });
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> EditProduct(int id, ProductForm form)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId);
         if (product is null) return NotFound();
         if (!await db.Categories.AnyAsync(c => c.Id == form.CategoryId))
             ModelState.AddModelError(nameof(form.CategoryId), "Выберите категорию.");
+        form.ExistingImagePath = product.ImagePath;
+        var imagePath = await SavePhotoAsync(form);
         if (!ModelState.IsValid)
         {
             await FillCategoriesAsync();
@@ -97,7 +102,11 @@ public class SellerController(StoreDbContext db) : Controller
         product.IsPublished = form.IsPublished;
         if (product.IsHiddenByAdmin)
             product.ModerationStatus = ProductModerationStatus.PendingReview;
-        await db.SaveChangesAsync();
+        var previousImage = product.ImagePath;
+        product.ImagePath = imagePath ?? (form.RemovePhoto ? null : previousImage);
+        try { await db.SaveChangesAsync(); }
+        catch { images.Delete(imagePath); throw; }
+        if (previousImage != product.ImagePath) images.Delete(previousImage);
         TempData["Success"] = product.IsHiddenByAdmin
             ? "Изменения сохранены. Товар отправлен администратору на проверку."
             : "Товар обновлён.";
@@ -127,6 +136,21 @@ public class SellerController(StoreDbContext db) : Controller
 
     private async Task FillCategoriesAsync() => ViewBag.Categories =
         await db.Categories.OrderBy(c => c.Name).ToListAsync();
+
+    private async Task<string?> SavePhotoAsync(ProductForm form)
+    {
+        if (form.Photo is null || !ModelState.IsValid) return null;
+        try { return await images.SaveAsync(form.Photo); }
+        catch (InvalidDataException error)
+        {
+            ModelState.AddModelError(nameof(form.Photo), error.Message);
+        }
+        catch (IOException)
+        {
+            ModelState.AddModelError(nameof(form.Photo), "Не удалось сохранить фото. Выберите файл и попробуйте ещё раз.");
+        }
+        return null;
+    }
 
     private static string CleanVisual(string? value) => value is
         "shoe" or "backpack" or "rope" or "dumbbell" or "mat" or "football" or

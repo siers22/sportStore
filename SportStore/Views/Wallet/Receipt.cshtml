@@ -1,0 +1,22 @@
+@model WalletTopUp
+@{
+    var moneyCulture = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
+    ViewData["Title"] = "Карта пополнена";
+    var card = (VirtualCard)ViewBag.Card;
+}
+<section class="container page-space narrow">
+    <div class="form-panel payment-receipt">
+        <div class="receipt-check" aria-hidden="true">✓</div>
+        <div class="eyebrow">ПЕРЕВОД ВЫПОЛНЕН · DEMO</div>
+        <h1>Карта пополнена</h1>
+        <p class="receipt-amount">+@Model.Amount.ToString("N2", moneyCulture) ₽</p>
+        <p>Средства зачислены на виртуальную карту.</p>
+        <div class="summary-row"><span>Получатель</span><strong>Движение · •••• @card.LastFour</strong></div>
+        <div class="summary-row"><span>Комиссия</span><strong>0 ₽</strong></div>
+        <div class="summary-row"><span>Баланс после перевода</span><strong>@Model.BalanceAfter.ToString("N2", moneyCulture) ₽</strong></div>
+        <div class="summary-row"><span>Дата</span><strong>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong></div>
+        <p class="receipt-reference">Номер операции: @Model.Id</p>
+        <div class="receipt-actions"><a class="button button-dark" asp-action="Index">К карте ↗</a><a class="button button-accent" asp-controller="Checkout" asp-action="Index">К оформлению заказа ↗</a></div>
+        <small>Это учебная имитация перевода. Настоящие деньги не списывались.</small>
+    </div>
+</section>

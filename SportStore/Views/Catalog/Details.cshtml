@@ -6,7 +6,16 @@
 <section class="container page-space">
     <div class="breadcrumb"><a asp-action="Index">Каталог</a><span>/</span><a asp-action="Index" asp-route-categoryId="@Model.CategoryId">@Model.Category.Name</a><span>/</span>@Model.Name</div>
     <div class="details-grid">
-        <div class="details-art tone-@Model.Visual"><span>@icon</span><small>ДВИЖЕНИЕ / @Model.Category.Name.ToUpper()</small></div>
+        <div class="details-art tone-@Model.Visual @(Model.ImagePath is not null ? "has-photo" : "")">
+            @if (Model.ImagePath is not null)
+            {
+                <img class="product-photo" src="@Model.ImagePath" alt="@Model.Name" />
+            }
+            else
+            {
+                <span>@icon</span><small>ДВИЖЕНИЕ / @Model.Category.Name.ToUpper()</small>
+            }
+        </div>
         <div class="details-info">
             <div class="eyebrow">@Model.Category.Name.ToUpper() · @(Model.Seller.SellerProfile?.StoreName ?? Model.Seller.DisplayName)</div>
             <h1>@Model.Name</h1>

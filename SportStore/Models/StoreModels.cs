@@ -60,6 +60,8 @@ public class Product
     public string? ModerationReason { get; set; }
     [StringLength(30)]
     public string Visual { get; set; } = "default";
+    [StringLength(200)]
+    public string? ImagePath { get; set; }
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
     public string SellerId { get; set; } = "";
@@ -139,6 +141,17 @@ public class PaymentTransaction
     public int PurchaseId { get; set; }
     public Purchase Purchase { get; set; } = null!;
     public string BuyerId { get; set; } = "";
+    public decimal Amount { get; set; }
+    public decimal BalanceBefore { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class WalletTopUp
+{
+    public Guid Id { get; set; }
+    public string BuyerId { get; set; } = "";
+    public AppUser Buyer { get; set; } = null!;
     public decimal Amount { get; set; }
     public decimal BalanceBefore { get; set; }
     public decimal BalanceAfter { get; set; }

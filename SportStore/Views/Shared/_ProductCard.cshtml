@@ -8,8 +8,15 @@
     };
 }
 <article class="product-card">
-    <a asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.Id" class="product-image tone-@Model.Visual" aria-label="@Model.Name">
-        <span class="product-glyph">@icon</span><span class="product-image-label">MOVE / 2026</span>
+    <a asp-controller="Catalog" asp-action="Details" asp-route-id="@Model.Id" class="product-image tone-@Model.Visual @(Model.ImagePath is not null ? "has-photo" : "")" aria-label="@Model.Name">
+        @if (Model.ImagePath is not null)
+        {
+            <img class="product-photo" src="@Model.ImagePath" alt="@Model.Name" loading="lazy" />
+        }
+        else
+        {
+            <span class="product-glyph">@icon</span><span class="product-image-label">MOVE / 2026</span>
+        }
     </a>
     <div class="product-card-body">
         <div class="product-meta"><span>@Model.Category.Name</span><span>@(Model.Seller.SellerProfile?.StoreName ?? Model.Seller.DisplayName)</span></div>

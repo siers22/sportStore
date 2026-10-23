@@ -15,6 +15,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : Identity
     public DbSet<SellerOrder> SellerOrders => Set<SellerOrder>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<WalletTopUp> WalletTopUps => Set<WalletTopUp>();
     public DbSet<Complaint> Complaints => Set<Complaint>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -36,6 +37,12 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : Identity
         builder.Entity<PaymentTransaction>().Property(t => t.Amount).HasPrecision(12, 2);
         builder.Entity<PaymentTransaction>().Property(t => t.BalanceBefore).HasPrecision(12, 2);
         builder.Entity<PaymentTransaction>().Property(t => t.BalanceAfter).HasPrecision(12, 2);
+        builder.Entity<WalletTopUp>().Property(t => t.Amount).HasPrecision(12, 2);
+        builder.Entity<WalletTopUp>().Property(t => t.BalanceBefore).HasPrecision(12, 2);
+        builder.Entity<WalletTopUp>().Property(t => t.BalanceAfter).HasPrecision(12, 2);
+        builder.Entity<WalletTopUp>().HasIndex(t => t.BuyerId);
+        builder.Entity<WalletTopUp>().HasOne(t => t.Buyer).WithMany()
+            .HasForeignKey(t => t.BuyerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<SellerOrder>().Property(o => o.Status).HasConversion<string>();
         builder.Entity<Complaint>().Property(c => c.Status).HasConversion<string>();
         builder.Entity<Product>().Property(p => p.ModerationStatus).HasConversion<string>();

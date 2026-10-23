@@ -17,3 +17,6 @@ release/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploaded product photos
+**/product-images/
