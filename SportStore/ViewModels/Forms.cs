@@ -55,7 +55,7 @@ public class CheckoutForm
     [Required(ErrorMessage = "Укажите адрес доставки."), StringLength(200)]
     public string DeliveryAddress { get; set; } = "";
     [Required(ErrorMessage = "Укажите телефон.")]
-    [RegularExpression(@"^[0-9]{10,15}$", ErrorMessage = "Введите только цифры: от 10 до 15 цифр, без пробелов и знака +.")]
+    [RegularExpression(@"^\+7 \([0-9]{3}\) [0-9]{3}-[0-9]{2}-[0-9]{2}$", ErrorMessage = "Введите номер целиком в формате +7 (900) 123-45-67.")]
     public string ContactPhone { get; set; } = "";
 }
 

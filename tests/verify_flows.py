@@ -192,10 +192,10 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
         check(replacement_path in buyer.request('/Cart')[2].decode(), 'photo rendered in cart')
         token, _ = buyer.form('/Checkout')
         checkout = {'__RequestVerificationToken': token, 'RecipientName': 'Тестовый покупатель',
-                    'DeliveryAddress': 'Тестовый адрес', 'ContactPhone': '79001234567'}
+                    'DeliveryAddress': 'Тестовый адрес', 'ContactPhone': '+7 (900) 123-45-67'}
         purchases_before = scalar('SELECT COUNT(*) FROM Purchases')
         payment_balance = balance()
-        for phone in ['abc', '+79001234567', '7900 1234567', '123', '1' * 16]:
+        for phone in ['abc', '79001234567', '+79001234567', '+7 (900) 123-45', '+1 (900) 123-45-67', '123', '1' * 16]:
             status, path, _ = buyer.request('/Checkout', checkout | {'ContactPhone': phone})
             check(status == 200 and path == '/Checkout' and scalar('SELECT COUNT(*) FROM Purchases') == purchases_before and balance() == payment_balance,
                   'server rejects invalid phone: ' + phone)
@@ -204,7 +204,7 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
             db.execute('DELETE FROM CartItems WHERE BuyerId=? AND ProductId<>?', (buyer_id, product_id))
         status, path, _ = buyer.request('/Checkout', checkout)
         check(status == 200 and path.startswith('/Orders/Details/') and balance() == payment_balance - decimal.Decimal('1500.25'),
-              'valid numeric phone completes purchase using topped-up balance')
+              'complete formatted phone completes purchase using topped-up balance')
         check('Покупка №' in html.unescape(buyer.request('/Wallet')[2].decode()), 'wallet shows purchase and top-up history together')
         seller.request(edit_path, product_fields | {'RemovePhoto': 'true'})
         check(scalar('SELECT ImagePath FROM Products WHERE Id=?', (product_id,)) is None and buyer.request(replacement_path)[0] == 404,
