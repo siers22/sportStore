@@ -35,6 +35,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
     options.ValidationInterval = TimeSpan.Zero);
 builder.Services.AddScoped<CheckoutService>();
+builder.Services.AddScoped<ProductDeletionService>();
 
 var app = builder.Build();
 

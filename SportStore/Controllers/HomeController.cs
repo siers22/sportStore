@@ -11,7 +11,7 @@ public class HomeController(StoreDbContext db) : Controller
         ViewBag.Categories = await db.Categories.OrderBy(c => c.Name).ToListAsync();
         return View(await db.Products.Include(p => p.Category).Include(p => p.Seller)
             .ThenInclude(s => s.SellerProfile)
-            .Where(p => p.IsPublished && !p.IsHiddenByAdmin && p.Stock > 0)
+            .Where(p => !p.IsDeleted && p.IsPublished && !p.IsHiddenByAdmin && p.Stock > 0)
             .OrderByDescending(p => p.CreatedAt).Take(8).ToListAsync());
     }
 

@@ -38,6 +38,7 @@
                             <button class="text-link link-button" type="submit">@(product.ModerationStatus == ProductModerationStatus.PendingReview ? "Вернуть на исправление" : "Скрыть товар")</button>
                         </form>
                     }
+                    <a class="text-link danger-link" asp-action="DeleteProduct" asp-route-id="@product.Id">Удалить товар</a>
                 </td>
             </tr>
         }

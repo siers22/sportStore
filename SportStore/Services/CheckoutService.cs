@@ -25,7 +25,7 @@ public class CheckoutService(StoreDbContext db)
             ?? throw new CheckoutException("Виртуальная карта не найдена.");
         foreach (var item in cart)
         {
-            if (!item.Product.IsPublished || item.Product.IsHiddenByAdmin || item.Product.Stock < item.Quantity)
+            if (item.Product.IsDeleted || !item.Product.IsPublished || item.Product.IsHiddenByAdmin || item.Product.Stock < item.Quantity)
                 throw new CheckoutException($"Товара «{item.Product.Name}» больше нет в нужном количестве.");
         }
 

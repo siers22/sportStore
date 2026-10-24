@@ -10,14 +10,14 @@ using SportStore.Services;
 namespace SportStore.Controllers;
 
 [Authorize(Roles = Roles.Seller)]
-public class SellerController(StoreDbContext db, ProductImageStore images) : Controller
+public class SellerController(StoreDbContext db, ProductImageStore images, ProductDeletionService deletion) : Controller
 {
     private string SellerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     public async Task<IActionResult> Index()
     {
         ViewBag.Store = await db.SellerProfiles.FirstOrDefaultAsync(s => s.UserId == SellerId);
-        ViewBag.ProductCount = await db.Products.CountAsync(p => p.SellerId == SellerId);
+        ViewBag.ProductCount = await db.Products.CountAsync(p => p.SellerId == SellerId && !p.IsDeleted);
         ViewBag.OrderCount = await db.SellerOrders.CountAsync(o => o.SellerId == SellerId);
         ViewBag.Revenue = (await db.SellerOrders.Where(o => o.SellerId == SellerId && o.Status != OrderStatus.Cancelled)
             .Select(o => o.Total).ToListAsync()).Sum();
@@ -27,7 +27,7 @@ public class SellerController(StoreDbContext db, ProductImageStore images) : Con
     }
 
     public async Task<IActionResult> Products() => View(await db.Products.Include(p => p.Category)
-        .Where(p => p.SellerId == SellerId).OrderByDescending(p => p.CreatedAt).ToListAsync());
+        .Where(p => p.SellerId == SellerId && !p.IsDeleted).OrderByDescending(p => p.CreatedAt).ToListAsync());
 
     [HttpGet]
     public async Task<IActionResult> CreateProduct()
@@ -62,7 +62,7 @@ public class SellerController(StoreDbContext db, ProductImageStore images) : Con
     [HttpGet]
     public async Task<IActionResult> EditProduct(int id)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId);
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId && !p.IsDeleted);
         if (product is null) return NotFound();
         await FillCategoriesAsync();
         ViewBag.ProductId = id;
@@ -79,7 +79,7 @@ public class SellerController(StoreDbContext db, ProductImageStore images) : Con
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> EditProduct(int id, ProductForm form)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId);
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId && !p.IsDeleted);
         if (product is null) return NotFound();
         if (!await db.Categories.AnyAsync(c => c.Id == form.CategoryId))
             ModelState.AddModelError(nameof(form.CategoryId), "Выберите категорию.");
@@ -111,6 +111,22 @@ public class SellerController(StoreDbContext db, ProductImageStore images) : Con
             ? "Изменения сохранены. Товар отправлен администратору на проверку."
             : "Товар обновлён.";
         return RedirectToAction("Products");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var product = await db.Products.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id && p.SellerId == SellerId && !p.IsDeleted);
+        return product is null ? NotFound() : View(product);
+    }
+
+    [HttpPost, ActionName("DeleteProduct"), ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteProductConfirmed(int id)
+    {
+        if (!await deletion.DeleteAsync(id, SellerId)) return NotFound();
+        TempData["Success"] = "Товар удалён. Оформленные заказы и жалобы сохранены в истории.";
+        return RedirectToAction(nameof(Products));
     }
 
     public async Task<IActionResult> Orders() => View(await db.SellerOrders

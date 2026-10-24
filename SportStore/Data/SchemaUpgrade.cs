@@ -12,14 +12,16 @@ public static class SchemaUpgrade
         await using var command = db.Database.GetDbConnection().CreateCommand();
         command.Transaction = transaction.GetDbTransaction();
         command.CommandText = "PRAGMA table_info('Products')";
-        var hasImagePath = false;
+        var columns = new HashSet<string>();
         await using (var reader = await command.ExecuteReaderAsync())
         {
             while (await reader.ReadAsync())
-                hasImagePath |= reader.GetString(1) == "ImagePath";
+                columns.Add(reader.GetString(1));
         }
-        if (!hasImagePath)
+        if (!columns.Contains("ImagePath"))
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN ImagePath TEXT NULL");
+        if (!columns.Contains("IsDeleted"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN IsDeleted INTEGER NOT NULL DEFAULT 0");
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS WalletTopUps (
                 Id TEXT NOT NULL CONSTRAINT PK_WalletTopUps PRIMARY KEY,

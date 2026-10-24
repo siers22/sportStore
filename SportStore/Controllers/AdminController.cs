@@ -5,16 +5,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportStore.Data;
 using SportStore.Models;
+using SportStore.Services;
 
 namespace SportStore.Controllers;
 
 [Authorize(Roles = Roles.Admin)]
-public class AdminController(StoreDbContext db, UserManager<AppUser> users) : Controller
+public class AdminController(StoreDbContext db, UserManager<AppUser> users, ProductDeletionService deletion) : Controller
 {
     public async Task<IActionResult> Index()
     {
         ViewBag.UserCount = await db.Users.CountAsync();
-        ViewBag.ProductCount = await db.Products.CountAsync();
+        ViewBag.ProductCount = await db.Products.CountAsync(p => !p.IsDeleted);
         ViewBag.OrderCount = await db.SellerOrders.CountAsync();
         ViewBag.OpenComplaints = await db.Complaints.CountAsync(c => c.Status != ComplaintStatus.Closed);
         return View(await db.Complaints.Include(c => c.Product).Include(c => c.Buyer)
@@ -68,7 +69,23 @@ public class AdminController(StoreDbContext db, UserManager<AppUser> users) : Co
 
     public async Task<IActionResult> Products() => View(await db.Products.Include(p => p.Category)
         .Include(p => p.Seller).ThenInclude(s => s.SellerProfile)
+        .Where(p => !p.IsDeleted)
         .OrderByDescending(p => p.CreatedAt).ToListAsync());
+
+    [HttpGet]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        return product is null ? NotFound() : View(product);
+    }
+
+    [HttpPost, ActionName("DeleteProduct"), ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteProductConfirmed(int id)
+    {
+        if (!await deletion.DeleteAsync(id)) return NotFound();
+        TempData["Success"] = "Товар удалён. Оформленные заказы и жалобы сохранены в истории.";
+        return RedirectToAction(nameof(Products));
+    }
 
     public async Task<IActionResult> Orders() => View(await db.SellerOrders
         .Include(o => o.Purchase).ThenInclude(p => p.Buyer)
@@ -80,7 +97,7 @@ public class AdminController(StoreDbContext db, UserManager<AppUser> users) : Co
     public async Task<IActionResult> HideProduct(int id, string? reason)
     {
         var product = await db.Products.FindAsync(id);
-        if (product is null) return NotFound();
+        if (product is null || product.IsDeleted) return NotFound();
         if (!ValidReason(reason))
         {
             TempData["Error"] = "Укажите причину скрытия товара (до 1000 символов).";
@@ -98,7 +115,7 @@ public class AdminController(StoreDbContext db, UserManager<AppUser> users) : Co
     public async Task<IActionResult> ApproveProduct(int id)
     {
         var product = await db.Products.FindAsync(id);
-        if (product is null) return NotFound();
+        if (product is null || product.IsDeleted) return NotFound();
         if (product.ModerationStatus != ProductModerationStatus.PendingReview) return BadRequest("Товар ещё не отправлен на проверку.");
         product.IsHiddenByAdmin = false;
         product.ModerationStatus = ProductModerationStatus.Approved;
@@ -134,7 +151,7 @@ public class AdminController(StoreDbContext db, UserManager<AppUser> users) : Co
             complaint.ResolvedAt = null;
             complaint.ResolvedById = null;
         }
-        if (hideProduct)
+        if (hideProduct && !complaint.Product.IsDeleted)
         {
             if (!ValidReason(comment))
             {

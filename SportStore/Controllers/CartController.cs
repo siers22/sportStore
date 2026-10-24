@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,9 +22,10 @@ public class CartController(StoreDbContext db) : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(int productId, int quantity = 1)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var product = await db.Products.FindAsync(productId);
-        if (product is null || !product.IsPublished || product.IsHiddenByAdmin || product.Stock < 1) return NotFound();
+        if (product is null || product.IsDeleted || !product.IsPublished || product.IsHiddenByAdmin || product.Stock < 1) return NotFound();
         quantity = Math.Clamp(quantity, 1, 99);
         var item = await db.CartItems.FirstOrDefaultAsync(c => c.BuyerId == buyerId && c.ProductId == productId);
         if (item is null)
@@ -31,6 +33,7 @@ public class CartController(StoreDbContext db) : Controller
         else
             item.Quantity = Math.Min(Math.Min(item.Quantity + quantity, product.Stock), 99);
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         TempData["Success"] = "Товар добавлен в корзину.";
         return RedirectToAction("Index");
     }
@@ -42,7 +45,7 @@ public class CartController(StoreDbContext db) : Controller
         var item = await db.CartItems.Include(c => c.Product)
             .FirstOrDefaultAsync(c => c.Id == id && c.BuyerId == buyerId);
         if (item is null) return NotFound();
-        if (quantity <= 0 || item.Product.Stock <= 0 || item.Product.IsHiddenByAdmin || !item.Product.IsPublished)
+        if (quantity <= 0 || item.Product.IsDeleted || item.Product.Stock <= 0 || item.Product.IsHiddenByAdmin || !item.Product.IsPublished)
             db.CartItems.Remove(item);
         else item.Quantity = Math.Min(Math.Min(quantity, item.Product.Stock), 99);
         await db.SaveChangesAsync();

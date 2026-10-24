@@ -21,7 +21,7 @@ public class ComplaintsController(StoreDbContext db) : Controller
     [HttpGet]
     public async Task<IActionResult> Create(int productId)
     {
-        ViewBag.Product = await db.Products.FindAsync(productId);
+        ViewBag.Product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted);
         if (ViewBag.Product is null) return NotFound();
         return View(new ComplaintForm { ProductId = productId });
     }
@@ -30,7 +30,7 @@ public class ComplaintsController(StoreDbContext db) : Controller
     public async Task<IActionResult> Create(ComplaintForm form)
     {
         var product = await db.Products.FindAsync(form.ProductId);
-        if (product is null) return NotFound();
+        if (product is null || product.IsDeleted) return NotFound();
         if (!ModelState.IsValid)
         {
             ViewBag.Product = product;

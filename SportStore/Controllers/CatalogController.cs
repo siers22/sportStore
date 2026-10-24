@@ -10,7 +10,7 @@ public class CatalogController(StoreDbContext db) : Controller
     {
         var query = db.Products.Include(p => p.Category).Include(p => p.Seller)
             .ThenInclude(s => s.SellerProfile)
-            .Where(p => p.IsPublished && !p.IsHiddenByAdmin && p.Stock > 0).AsQueryable();
+            .Where(p => !p.IsDeleted && p.IsPublished && !p.IsHiddenByAdmin && p.Stock > 0).AsQueryable();
         if (categoryId.HasValue) query = query.Where(p => p.CategoryId == categoryId.Value);
         var products = await query.ToListAsync();
         if (!string.IsNullOrWhiteSpace(q))
@@ -36,7 +36,7 @@ public class CatalogController(StoreDbContext db) : Controller
     {
         var product = await db.Products.Include(p => p.Category).Include(p => p.Seller)
             .ThenInclude(s => s.SellerProfile)
-            .FirstOrDefaultAsync(p => p.Id == id && p.IsPublished && !p.IsHiddenByAdmin);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted && p.IsPublished && !p.IsHiddenByAdmin);
         return product is null ? NotFound() : View(product);
     }
 }

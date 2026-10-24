@@ -124,6 +124,8 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
                   'legacy database upgraded without losing users, products or purchases')
         check(scalar("SELECT COUNT(*) FROM pragma_table_info('Products') WHERE name='ImagePath'") == 1,
               'photo column exists after startup')
+        check(scalar("SELECT COUNT(*) FROM pragma_table_info('Products') WHERE name='IsDeleted'") == 1,
+              'product deletion column exists after startup')
         check(scalar("SELECT COUNT(*) FROM sqlite_master WHERE name='WalletTopUps'") == 1,
               'top-up table exists after startup')
         if original_demo_ids:
@@ -231,6 +233,7 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
         status, path, _ = buyer.request('/Checkout', checkout)
         check(status == 200 and path.startswith('/Orders/Details/') and balance() == payment_balance - decimal.Decimal('1500.25'),
               'complete formatted phone completes purchase using topped-up balance')
+        purchase_path = path
         check('Покупка №' in html.unescape(buyer.request('/Wallet')[2].decode()), 'wallet shows purchase and top-up history together')
         seller.request(edit_path, product_fields | {'RemovePhoto': 'true'})
         check(scalar('SELECT ImagePath FROM Products WHERE Id=?', (product_id,)) is None and buyer.request(replacement_path)[0] == 404,
@@ -259,6 +262,79 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
         assert status == 200 and path == '/'
         other_buyer.login('temporary@example.local', 'TestPass123!')
         check(other_buyer.request(receipt_path)[0] == 404, 'receipt visible only to its owner')
+        # Product deletion must respect ownership and preserve references from past purchases and complaints.
+        stranger = Client(base)
+        stranger.login('arena', 'Demo123!')
+        token, _ = stranger.form('/Seller/Products')
+        check(stranger.request(f'/Seller/DeleteProduct/{product_id}')[0] == 404
+              and stranger.request(f'/Seller/DeleteProduct/{product_id}', {'__RequestVerificationToken': token})[0] == 404,
+              'another seller cannot view or submit product deletion')
+        token, _ = buyer.form('/Cart')
+        check(buyer.request(f'/Seller/DeleteProduct/{product_id}', {'__RequestVerificationToken': token})[1] == '/Account/Denied'
+              and buyer.request(f'/Admin/DeleteProduct/{product_id}', {'__RequestVerificationToken': token})[1] == '/Account/Denied',
+              'buyers cannot delete products through seller or administrator routes')
+        token, confirmation = seller.form(f'/Seller/DeleteProduct/{product_id}')
+        check('DeleteProduct' in confirmation and scalar('SELECT IsDeleted FROM Products WHERE Id=?', (product_id,)) == 0,
+              'opening deletion confirmation does not delete the product')
+        check(seller.request(f'/Seller/DeleteProduct/{product_id}', {'__RequestVerificationToken': 'invalid'})[0] == 400,
+              'product deletion requires an antiforgery token')
+        for customer in [buyer, other_buyer]:
+            cart_token, _ = customer.form(f'/Catalog/Details/{product_id}')
+            customer.request('/Cart/Add', {'__RequestVerificationToken': cart_token, 'productId': product_id, 'quantity': '1'})
+        check(scalar('SELECT COUNT(*) FROM CartItems WHERE ProductId=?', (product_id,)) == 2,
+              'deletion fixture is in two buyer carts')
+        complaint_token, _ = buyer.form(f'/Complaints/Create?productId={product_id}')
+        complaint_reason = 'Keep this complaint in history after product deletion.'
+        buyer.request('/Complaints/Create', {'__RequestVerificationToken': complaint_token,
+                      'ProductId': product_id, 'Reason': complaint_reason})
+        complaint_id = scalar('SELECT Id FROM Complaints WHERE Reason=?', (complaint_reason,))
+        history_count = scalar('SELECT COUNT(*) FROM Purchases')
+        order_items = scalar('SELECT COUNT(*) FROM OrderItems WHERE ProductId=?', (product_id,))
+        delete_balance = balance()
+        status, path, body = seller.request(f'/Seller/DeleteProduct/{product_id}', {'__RequestVerificationToken': token})
+        check(status == 200 and path == '/Seller/Products'
+              and scalar('SELECT IsDeleted FROM Products WHERE Id=?', (product_id,)) == 1,
+              'owner can delete a product that already has purchases and complaints')
+        check('Integration photo product' not in body.decode()
+              and 'Integration photo product' not in buyer.request('/Catalog')[2].decode()
+              and 'Integration photo product' not in buyer.request('/')[2].decode()
+              and 'Integration photo product' not in admin.request('/Admin/Products')[2].decode(),
+              'deleted product disappears from seller, administrator, catalogue and home lists')
+        check(scalar('SELECT COUNT(*) FROM CartItems WHERE ProductId=?', (product_id,)) == 0
+              and 'Integration photo product' not in buyer.request('/Cart')[2].decode()
+              and 'Integration photo product' not in other_buyer.request('/Cart')[2].decode(),
+              'deletion removes the product from all buyer carts')
+        check(scalar('SELECT ImagePath FROM Products WHERE Id=?', (product_id,)) is None
+              and buyer.request(moderated_image)[0] == 404, 'deletion cleans up the uploaded photo')
+        check(buyer.request(purchase_path)[0] == 200 and 'Integration photo product' in buyer.request(purchase_path)[2].decode()
+              and scalar('SELECT COUNT(*) FROM OrderItems WHERE ProductId=?', (product_id,)) == order_items
+              and scalar('SELECT COUNT(*) FROM Purchases') == history_count,
+              'historical orders retain the deleted product name, price and positions')
+        check(scalar('SELECT COUNT(*) FROM Complaints WHERE Id=?', (complaint_id,)) == 1
+              and complaint_reason in buyer.request('/Complaints')[2].decode()
+              and complaint_reason in admin.request('/Admin/Complaints')[2].decode(),
+              'existing buyer complaints and administrator review history remain available')
+        check(buyer.request(f'/Catalog/Details/{product_id}')[0] == 404
+              and seller.request(f'/Seller/EditProduct/{product_id}')[0] == 404
+              and seller.request(f'/Seller/EditProduct/{product_id}', product_fields | {'__RequestVerificationToken': token})[0] == 404,
+              'deleted product cannot be opened or edited')
+        check(buyer.request('/Cart/Add', {'__RequestVerificationToken': complaint_token, 'productId': product_id})[0] == 404
+              and buyer.request(f'/Complaints/Create?productId={product_id}')[0] == 404,
+              'deleted product cannot be added back to a cart or receive a new complaint')
+        admin_token, _ = admin.form('/Admin/Products')
+        check(admin.request(f'/Admin/ApproveProduct/{product_id}', {'__RequestVerificationToken': admin_token})[0] == 404
+              and admin.request(f'/Admin/HideProduct/{product_id}', {'__RequestVerificationToken': admin_token, 'reason': 'test'})[0] == 404,
+              'moderation cannot restore a deleted product')
+        buyer.request('/Checkout', checkout)
+        check(balance() == delete_balance and scalar('SELECT COUNT(*) FROM Purchases') == history_count,
+              'submitting a stale checkout does not charge for the deleted product')
+        check(seller.request(f'/Seller/DeleteProduct/{product_id}', {'__RequestVerificationToken': token})[0] == 404,
+              'repeated deletion has no further effect')
+        arena_product = scalar("SELECT p.Id FROM Products p JOIN AspNetUsers u ON u.Id=p.SellerId WHERE u.UserName='arena' AND p.IsDeleted=0 LIMIT 1")
+        token, _ = admin.form(f'/Admin/DeleteProduct/{arena_product}')
+        check(admin.request(f'/Admin/DeleteProduct/{arena_product}', {'__RequestVerificationToken': token})[1] == '/Admin/Products'
+              and scalar('SELECT IsDeleted FROM Products WHERE Id=?', (arena_product,)) == 1,
+              'administrator can delete a product belonging to any seller')
         print('All integration checks passed. Test data was isolated.', flush=True)
     finally:
         process.terminate()

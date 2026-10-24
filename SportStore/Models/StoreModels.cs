@@ -54,6 +54,7 @@ public class Product
     [Range(0, 1000000)]
     public int Stock { get; set; }
     public bool IsPublished { get; set; } = true;
+    public bool IsDeleted { get; set; }
     public bool IsHiddenByAdmin { get; set; }
     public ProductModerationStatus ModerationStatus { get; set; } = ProductModerationStatus.Approved;
     [StringLength(1000)]
