@@ -6,7 +6,7 @@
         <form asp-action="Login" asp-route-returnUrl="@ViewBag.ReturnUrl" method="post" class="stack-form">
 
             <div asp-validation-summary="ModelOnly" class="validation"></div>
-            <label asp-for="Email">Email</label><input asp-for="Email" autocomplete="email" /><span asp-validation-for="Email" class="validation"></span>
+            <label asp-for="Login">Логин или email</label><input asp-for="Login" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Например, admin" /><span asp-validation-for="Login" class="validation"></span>
             <label asp-for="Password">Пароль</label><input asp-for="Password" type="password" autocomplete="current-password" /><span asp-validation-for="Password" class="validation"></span>
             <label class="check-row"><input asp-for="RememberMe" /> Запомнить меня</label>
             <button class="button button-dark full" type="submit">Войти ↗</button>

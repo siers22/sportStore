@@ -22,7 +22,10 @@ public class AccountController(UserManager<AppUser> users, SignInManager<AppUser
     {
         ViewBag.ReturnUrl = returnUrl;
         if (!ModelState.IsValid) return View(form);
-        var user = await users.FindByEmailAsync(form.Email.Trim());
+        var login = form.Login.Trim();
+        var user = login.Contains('@')
+            ? await users.FindByEmailAsync(login)
+            : await users.FindByNameAsync(login);
         if (user is null)
         {
             ModelState.AddModelError("", "Не удалось войти. Проверьте данные или статус аккаунта.");
@@ -39,7 +42,7 @@ public class AccountController(UserManager<AppUser> users, SignInManager<AppUser
         var result = await signIn.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
-            ModelState.AddModelError("", "Неверный email или пароль.");
+            ModelState.AddModelError("", "Неверный логин или пароль.");
             return View(form);
         }
         return Redirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : Url.Action("Index", "Home")!);

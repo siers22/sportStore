@@ -21,10 +21,10 @@ public static class DbSeeder
         }
 
         var users = services.GetRequiredService<UserManager<AppUser>>();
-        await CreateUserAsync(users, "admin@sport.local", "Администратор", "Admin123!", Roles.Admin);
-        var seller1 = await CreateUserAsync(users, "trail@sport.local", "Алексей", "Demo123!", Roles.Seller);
-        var seller2 = await CreateUserAsync(users, "arena@sport.local", "Мария", "Demo123!", Roles.Seller);
-        var buyer = await CreateUserAsync(users, "buyer@sport.local", "Дмитрий", "Demo123!", Roles.Buyer);
+        await CreateUserAsync(users, "admin@sport.local", "admin", "Администратор", "Admin123!", Roles.Admin);
+        var seller1 = await CreateUserAsync(users, "trail@sport.local", "trail", "Алексей", "Demo123!", Roles.Seller);
+        var seller2 = await CreateUserAsync(users, "arena@sport.local", "arena", "Мария", "Demo123!", Roles.Seller);
+        var buyer = await CreateUserAsync(users, "buyer@sport.local", "buyer", "Дмитрий", "Demo123!", Roles.Buyer);
 
         if (!await db.SellerProfiles.AnyAsync())
         {
@@ -109,12 +109,22 @@ public static class DbSeeder
     }
 
     private static async Task<AppUser> CreateUserAsync(UserManager<AppUser> manager, string email,
-        string name, string password, string role)
+        string login, string name, string password, string role)
     {
         var user = await manager.FindByEmailAsync(email);
-        if (user is not null) return user;
+        if (user is not null)
+        {
+            // Keep existing IDs, passwords and related data when upgrading demo accounts.
+            if (user.UserName != login)
+            {
+                var update = await manager.SetUserNameAsync(user, login);
+                if (!update.Succeeded)
+                    throw new InvalidOperationException(string.Join("; ", update.Errors.Select(e => e.Description)));
+            }
+            return user;
+        }
 
-        user = new AppUser { UserName = email, Email = email, DisplayName = name, EmailConfirmed = true };
+        user = new AppUser { UserName = login, Email = email, DisplayName = name, EmailConfirmed = true };
         var result = await manager.CreateAsync(user, password);
         if (!result.Succeeded)
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));

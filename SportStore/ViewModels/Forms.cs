@@ -4,9 +4,8 @@ namespace SportStore.ViewModels;
 
 public class LoginForm
 {
-    [Required(ErrorMessage = "Укажите email.")]
-    [EmailAddress(ErrorMessage = "Проверьте email.")]
-    public string Email { get; set; } = "";
+    [Required(ErrorMessage = "Укажите логин или email."), StringLength(256)]
+    public string Login { get; set; } = "";
     [Required(ErrorMessage = "Укажите пароль.")]
     public string Password { get; set; } = "";
     public bool RememberMe { get; set; }

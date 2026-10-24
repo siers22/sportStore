@@ -26,6 +26,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--dotnet', default='dotnet')
+parser.add_argument('--fresh', action='store_true', help='Use a new database instead of copying the legacy database')
 args = parser.parse_args()
 
 
@@ -70,9 +71,9 @@ class Client:
         token = re.search(r'name="__RequestVerificationToken"[^>]*value="([^"]+)"', text).group(1)
         return html.unescape(token), text
 
-    def login(self, email, password):
+    def login(self, login, password):
         token, _ = self.form('/Account/Login')
-        status, path, _ = self.request('/Account/Login', {'Email': email, 'Password': password, '__RequestVerificationToken': token})
+        status, path, _ = self.request('/Account/Login', {'Login': login, 'Password': password, '__RequestVerificationToken': token})
         assert status == 200 and path == '/', (status, path)
 
 
@@ -82,11 +83,13 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
     # Use a real legacy schema, when available, to exercise the compatibility upgrade.
     legacy = ROOT / 'SportStore/bin/Debug/net8.0/sportstore.db'
     baseline = None
-    if legacy.exists():
+    original_demo_ids = {}
+    if legacy.exists() and not args.fresh:
         with sqlite3.connect(f'file:{legacy}?mode=ro&immutable=1', uri=True) as old, sqlite3.connect(db_path) as db:
             old.backup(db)
             baseline = {table: db.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
                         for table in ['AspNetUsers', 'Products', 'Purchases']}
+            original_demo_ids = dict(db.execute("SELECT Email, Id FROM AspNetUsers WHERE Email IN ('admin@sport.local', 'buyer@sport.local', 'trail@sport.local', 'arena@sport.local')"))
             if 'ImagePath' in [row[1] for row in db.execute('PRAGMA table_info(Products)')]:
                 db.execute('ALTER TABLE Products DROP COLUMN ImagePath')
             db.execute('DROP TABLE IF EXISTS WalletTopUps')
@@ -123,8 +126,31 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
               'photo column exists after startup')
         check(scalar("SELECT COUNT(*) FROM sqlite_master WHERE name='WalletTopUps'") == 1,
               'top-up table exists after startup')
+        if original_demo_ids:
+            check(all(scalar('SELECT Id FROM AspNetUsers WHERE Email=?', (email,)) == user_id
+                      for email, user_id in original_demo_ids.items()),
+                  'short logins upgrade existing demo accounts without replacing their IDs')
+        for login, password, destination in [
+            ('admin', 'Admin123!', '/Admin'), ('buyer', 'Demo123!', '/Wallet'),
+            ('trail', 'Demo123!', '/Seller/Products'), ('arena', 'Demo123!', '/Seller/Products')
+        ]:
+            demo = Client(base)
+            demo.login(login, password)
+            check(demo.request(destination)[0] == 200, f'short login works for {login}')
+            demo.login(login + '@sport.local', password)
+            check(demo.request(destination)[0] == 200, f'previous email login still works for {login}')
+            check(scalar('SELECT UserName FROM AspNetUsers WHERE Email=?', (login + '@sport.local',)) == login,
+                  f'{login} is stored as the account username')
+        invalid_login = Client(base)
+        token, login_page = invalid_login.form('/Account/Login')
+        check('name="Login"' in login_page and 'autocomplete="username"' in login_page and 'type="email"' not in login_page,
+              'login page accepts a username instead of requiring email format')
+        status, path, _ = invalid_login.request('/Account/Login', {
+            '__RequestVerificationToken': token, 'Login': 'admin', 'Password': 'Incorrect123!'})
+        check(status == 200 and path == '/Account/Login' and invalid_login.request('/Admin')[1] == '/Account/Login',
+              'short login still requires the correct password')
         buyer = Client(base)
-        buyer.login('buyer@sport.local', 'Demo123!')
+        buyer.login('  BUYER  ', 'Demo123!')
         check(buyer.request('/Seller/CreateProduct')[1] == '/Account/Denied', 'buyer cannot manage seller products')
         buyer_id = scalar("SELECT Id FROM AspNetUsers WHERE Email='buyer@sport.local'")
         balance = lambda: decimal.Decimal(str(scalar('SELECT Balance FROM VirtualCards WHERE UserId=?', (buyer_id,))))
@@ -158,7 +184,7 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
         check('Пополнение карты' in html.unescape(buyer.request('/Wallet')[2].decode()), 'wallet shows top-up history')
 
         seller = Client(base)
-        seller.login('trail@sport.local', 'Demo123!')
+        seller.login('trail', 'Demo123!')
         check(seller.request('/Wallet/TopUp')[1] == '/Account/Denied', 'seller cannot top up buyer cards')
         token, _ = seller.form('/Seller/CreateProduct')
         product_fields = {'__RequestVerificationToken': token, 'Name': 'Integration photo product',
@@ -210,7 +236,7 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
         check(scalar('SELECT ImagePath FROM Products WHERE Id=?', (product_id,)) is None and buyer.request(replacement_path)[0] == 404,
               'removing photo deletes file and restores placeholder')
         admin = Client(base)
-        admin.login('admin@sport.local', 'Admin123!')
+        admin.login('admin', 'Admin123!')
         check(admin.request('/Admin')[0] == 200, 'documented administrator credentials work')
         token, _ = admin.form('/Admin/Products')
         admin.request(f'/Admin/HideProduct/{product_id}', {'__RequestVerificationToken': token, 'reason': 'Исправить описание'})
@@ -231,6 +257,7 @@ with tempfile.TemporaryDirectory(prefix='sportstore-check-') as temp:
             '__RequestVerificationToken': token, 'DisplayName': 'Temporary buyer', 'Email': 'temporary@example.local',
             'Password': 'TestPass123!', 'ConfirmPassword': 'TestPass123!', 'Role': 'Buyer'})
         assert status == 200 and path == '/'
+        other_buyer.login('temporary@example.local', 'TestPass123!')
         check(other_buyer.request(receipt_path)[0] == 404, 'receipt visible only to its owner')
         print('All integration checks passed. Test data was isolated.', flush=True)
     finally:
